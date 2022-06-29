@@ -15,7 +15,7 @@ namespace Assets.Plugins.Alg
         public static void DestroyChildren(this Transform transform)
         {
             foreach (Transform children in transform)
-                GameObject.Destroy(children.gameObject);
+                Object.Destroy(children.gameObject);
         }
 
         public static void MoveChildren(this Transform transform, Transform dstParent)
