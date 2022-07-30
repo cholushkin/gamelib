@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using Alg;
-using UnityEngine;
+﻿using UnityEngine;
 
 [ScriptExecutionOrder(-1000)]
 public class PermanentObjectHolder : MonoBehaviour
