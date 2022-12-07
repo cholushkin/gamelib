@@ -158,8 +158,10 @@ namespace GameLib.DataStructures
                 var currentNode = nodeStack.Pop();
                 yield return currentNode;
 
-                foreach (var treeNode in currentNode.Children)
-                    nodeStack.Push(treeNode);
+                for (int i = currentNode.Children.Count - 1; i >= 0; i--)
+                {
+                    nodeStack.Push(currentNode.Children[i]);
+                }
             }
         }
 
@@ -173,10 +175,8 @@ namespace GameLib.DataStructures
                 var currentNode = nodeStack.Pop();
                 yield return currentNode;
 
-                for (int i = currentNode.Children.Count - 1; i >= 0; i--)
-                {
-                    nodeStack.Push(currentNode.Children[i]);
-                }
+                foreach (var treeNode in currentNode.Children)
+                    nodeStack.Push(treeNode);
             }
         }
 
