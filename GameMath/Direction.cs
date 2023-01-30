@@ -13,7 +13,7 @@ namespace GameLib
         01[00]05  or  ←[c]→  
         08 07 06      ↙ ↓ ↘ 
     
-        iteration is in CW order ( poisitive rotation)
+        iteration is in CW order ( positive rotation )
         */
 
 		[Flags]
@@ -29,6 +29,36 @@ namespace GameLib
 			Down = 64, // ↓, other names: South, Down, Bottom
 			DownLeft = 128, // ↙, other names: LeftBottom, SouthWest 
 		}
+
+        public static readonly Vector2Int[] OrthogonalDirections =
+        {
+            new Vector2Int(-1, 0), // ←
+            new Vector2Int(0, 1), // ↑
+            new Vector2Int(1, 0), // →  
+            new Vector2Int(0, -1) // ↓
+		};
+
+        public static readonly Vector2Int[] DiagonalDirections =
+        {
+            new Vector2Int(-1, 1), // ↖
+            new Vector2Int(1, 1), // ↗
+            new Vector2Int(1, -1), // ↘  
+            new Vector2Int(-1, -1) // ↙
+        };
+
+        public static readonly Vector2Int[] Directions =
+        {
+            new Vector2Int(0, 0), // c
+            new Vector2Int(-1, 0), // ←
+            new Vector2Int(-1, 1), // ↖
+            new Vector2Int(0, 1), // ↑
+            new Vector2Int(1, 1), // ↗
+            new Vector2Int(1, 0), // →  
+            new Vector2Int(1, -1), // ↘  
+            new Vector2Int(0, -1), // ↓
+            new Vector2Int(-1, -1) // ↙
+        };
+
 
 		public static bool IsDirectionSet(RelativeDirection direction, RelativeDirection flag)
 		{
