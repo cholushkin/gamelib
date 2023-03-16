@@ -4,7 +4,6 @@ using Alg;
 
 namespace GameLib.Log
 {
-    [ScriptExecutionOrderDependsOn(typeof(PermanentObjectHolder))]
     public class LogManager : Singleton<LogManager>
     {
         [Serializable]
