@@ -1,17 +1,29 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using GameLib;
 using UnityEngine;
 using UnityEngine.Assertions;
 
 namespace WaveProcessor
 {
-    public class SimpleWaveProcessor<T> where T : IComparable<T>
+    public class Wave
+    {
+        public List<Vector2Int> Cells = new();
+
+        public bool IsEmpty()
+        {
+            return Cells.Count == 0;
+        }
+    }
+
+    public class SimpleWaveProcessor<T>
     {
         public delegate bool WallFunction(T val);
-        private T DefFuncWallValue;
+
         private const sbyte NotVisited = -1;
         private const sbyte Wall = -2;
-        private WallFunction WallFunc;
+        public WallFunction WallFunc { get; set; }
         private sbyte[,] Data;
         private readonly T[,] Map;
 
@@ -20,38 +32,16 @@ namespace WaveProcessor
         private List<Wave> Waves;
         private sbyte CurWaveIndex;
 
-        public class Wave
-        {
-            public List<Vector2Int> Cells = new List<Vector2Int>();
 
-            public bool IsEmpty()
-            {
-                return Cells.Count == 0;
-            }
-        }
 
         public SimpleWaveProcessor(T[,] map, WallFunction wf, Vector2Int? epicentre = null)
         {
             // map
-            WallFunc = wf;
-            Map = map;
-
-            MapWidth = map.GetLength(0);
-            MapHeight = map.GetLength(1);
-            Data = new sbyte[MapWidth, MapHeight];
-            Clear();
-
-            if (epicentre != null)
-                ComputeWaves(epicentre.Value);
-        }
-
-        public SimpleWaveProcessor(T[,] map, T defFuncWallValue, Vector2Int? epicentre = null)
-        {
-            // map
             Assert.IsNotNull(map, "SimpleWaveProcessor: passed map shouldn't be null");
-            WallFunc = DefaultWallFunction;
-            DefFuncWallValue = defFuncWallValue;
+            Assert.IsNotNull(wf);
+
             Map = map;
+            WallFunc = wf;
 
             MapWidth = map.GetLength(0);
             MapHeight = map.GetLength(1);
@@ -60,16 +50,6 @@ namespace WaveProcessor
 
             if (epicentre != null)
                 ComputeWaves(epicentre.Value);
-        }
-
-        public void SetWallFunction(WallFunction newWallFunction)
-        {
-            WallFunc = newWallFunction;
-        }
-
-        private bool DefaultWallFunction(T val)
-        {
-            return val.CompareTo(DefFuncWallValue) == 0;
         }
 
         public void Clear()
@@ -86,7 +66,7 @@ namespace WaveProcessor
             return Waves;
         }
 
-        public void ComputeWaves(Vector2Int epicentre)
+        public IEnumerable<Wave> ComputeWaves(Vector2Int epicentre)
         {
             Assert.IsTrue(IsInsideMap(epicentre), string.Format("ComputeWaves: epicentre {0} is outside the map.", epicentre));
 
@@ -95,11 +75,11 @@ namespace WaveProcessor
             Data[epicentre.x, epicentre.y] = 0;
             wave.Cells.Add(epicentre);
 
-
             // --- compute waves
             do
             {
                 Waves.Add(wave);
+                yield return wave;
                 wave = PrepareWave(wave);
             } while (!wave.IsEmpty());
         }
@@ -121,14 +101,6 @@ namespace WaveProcessor
             return curWave;
         }
 
-        private static readonly Vector2Int[] dirs =
-        {
-            new Vector2Int(0, -1),
-            new Vector2Int(0, 1),
-            new Vector2Int(-1, 0),
-            new Vector2Int(1, 0)
-        };
-
         private List<Vector2Int> GetNotVisitedNeighbours(Vector2Int cell)
         {
             var result = new List<Vector2Int>(4);
@@ -136,7 +108,7 @@ namespace WaveProcessor
 
             for (sbyte i = 0; i < 4; ++i)
             {
-                pointer = cell + dirs[i];
+                pointer = cell + Direction2D.OrthogonalDirections[i];
                 if (IsInsideMap(pointer) && !IsValue(pointer, Wall) && (IsValue(pointer, NotVisited)))
                     result.Add(pointer);
             }
