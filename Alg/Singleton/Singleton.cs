@@ -26,18 +26,14 @@ namespace Alg
 
         protected virtual void Awake()
         {
-            // found second instance
+            // Found second instance
             if (Instance != null && Instance != this)
             {
-                if (LogChecker.Important())
-                {
-                    Debug.LogErrorFormat("Got a second instance of the class {0} {1}", GetType(),
-                        transform.GetDebugName());
-                    Debug.LogErrorFormat("First instance: '{0}'", Instance.transform.GetDebugName());
-                }
+                LogChecker.PrintError(LogChecker.Level.Important, () => $"Got a second instance of the class {GetType()} {transform.GetDebugName()}");
+                LogChecker.PrintError(LogChecker.Level.Important, () => $"First instance: '{Instance.transform.GetDebugName()}'");
             }
-            if (LogChecker.Verbose() && LogChecker.IsFilterPass())
-                Debug.LogFormat("Singleton instance assigning. Type:{0}, Transform:{1}", GetType(), transform.GetDebugName());
+
+            LogChecker.Print(LogChecker.Level.Verbose, () => $"Singleton instance assigning. Type:{GetType()}, Transform:{transform.GetDebugName()}");
             AssignInstance();
         }
     }

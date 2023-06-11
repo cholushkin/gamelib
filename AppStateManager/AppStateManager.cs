@@ -3,7 +3,7 @@ using System.Linq;
 using Assets.Plugins.Alg;
 using UnityEngine;
 using UnityEngine.Assertions;
-using System;
+using GameLib.Log;
 
 public class AppStateManager : Singleton<AppStateManager>
 {
@@ -39,17 +39,15 @@ public class AppStateManager : Singleton<AppStateManager>
     protected override void Awake()
     {
         base.Awake();
-        if (LogChecker.Verbose() && LogChecker.IsFilterPass())
-            Debug.LogFormat("AppStates available {0}", transform.childCount);
+        LogChecker.Print(LogChecker.Level.Verbose, $"AppStates available {transform.childCount}");
 
-        // initialize states
         _ownedStates = new IAppState[transform.childCount];
         for (int i = 0; i < transform.childCount; ++i)
         {
             var child = transform.GetChild(i);
             var state = child.GetComponent<IAppState>();
             _ownedStates[i] = state;
-            Assert.IsNotNull(_ownedStates[i], "state should be: public class StateName : AppStateManager.AppState<StateName>");
+            Assert.IsNotNull(_ownedStates[i], "The State should be: public class StateName : AppStateManager.AppState<StateName>");
             state.AppStateInitialization();
         }
     }
@@ -58,25 +56,23 @@ public class AppStateManager : Singleton<AppStateManager>
     {
         if (StartState == null)
         {
-            if (LogChecker.Normal() && LogChecker.IsFilterPass())
-                Debug.LogWarningFormat("The AppStateManager on {0} has no starting state.", gameObject.name);
+            LogChecker.PrintWarning(LogChecker.Level.Normal, $"The AppStateManager on {gameObject.name} has no starting state.");
             return;
         }
         Start(StartState.GetComponent<IAppState>());
     }
 
-    // todo: remove fake param later
-    public void Start<T>(Type mode = null) where T : IAppState
+    public void Start<T>() where T : IAppState
     {
         if (!typeof(IAppState).IsAssignableFrom(typeof(T)))
         {
-            Debug.LogError($"AppStateManager: {typeof(T).Name} does not implement IAppState");
+            LogChecker.PrintError(LogChecker.Level.Important, $"AppStateManager: {typeof(T).Name} does not implement IAppState");
             return;
         }
         var state = _ownedStates.FirstOrDefault(t => t.GetType() == typeof(T));
-        if (null == state) 
+        if (null == state)
         {
-            Debug.LogError($"AppStateManager: {transform.GetDebugName()} doesn't own the state {typeof(T).Name}");
+            LogChecker.PrintError(LogChecker.Level.Important, $"AppStateManager: {transform.GetDebugName()} doesn't own the state {typeof(T).Name}");
             return;
         }
         Start(state);
@@ -84,19 +80,15 @@ public class AppStateManager : Singleton<AppStateManager>
 
     public void Start(IAppState state)
     {
-        if (LogChecker.Verbose() && LogChecker.IsFilterPass())
-            Debug.LogFormat("Starting state '{0}'", state?.GetName());
+        LogChecker.Print(LogChecker.Level.Verbose, "Starting state '{state?.GetName()}'");
         if (_currenState != null && _currenState == state)
-        {
-            if (LogChecker.Verbose() && LogChecker.IsFilterPass())
-                Debug.LogWarning("Restarting same state");
-        }
+            LogChecker.PrintWarning(LogChecker.Level.Verbose, "Restarting same state");
 
         var nextState = _ownedStates.FirstOrDefault(s => s == state);
         if(nextState == null && state != null)
-            Debug.LogError($"AppStateManager: {transform.GetDebugName()} doesn't own the state {state.GetName()}");
+            LogChecker.PrintError(LogChecker.Level.Important, $"AppStateManager: {transform.GetDebugName()} doesn't own the state {state.GetName()}");
 
-        // hope StateLeave won't call Start
+        // Hope StateLeave won't call Start
         _currenState?.AppStateLeave();
         _prevState = _currenState;
         _currenState = nextState;
@@ -106,7 +98,7 @@ public class AppStateManager : Singleton<AppStateManager>
     [ContextMenu("DbgPrintCurrentState")]
     void DbgPrintCurrentState()
     {
-        Debug.Log($"Current state:{GetCurrentState()}, prev state:{GetPreviousState()}");
+        LogChecker.Print($"Current state:{GetCurrentState()}, prev state:{GetPreviousState()}");
     }
 
     public IAppState GetCurrentState()

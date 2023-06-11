@@ -1,49 +1,56 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using Alg;
+using UnityEngine;
 
 namespace GameLib.Log
 {
     public class LogManager : Singleton<LogManager>
     {
         [Serializable]
-        public class FilterConfigItem
+        public class Filter
         {
-            public LogFilters Filter;
-            public bool IsEnabled;
+            public string AllowSubsystemWildcard;
+            public bool Enabled;
+            public bool Solo;
         }
         public LogChecker.Level GlobalLevel;
-        public FilterConfigItem[] FilterConfig;
+
+        [SerializeField]
+        [Tooltip("If any of these wildcards pass the message, the message will be printed")]
+        private List<Filter> FilterChain;
+        private List<Filter> _solo;
+
+
+        void OnValidate()
+        {
+            RefreshSoloCache();
+        }
+
+        // Note: call this method after you change solo states at runtime
+        public void RefreshSoloCache()
+        {
+            _solo = FilterChain.Where(x => x.Enabled && x.Solo).ToList();
+        }
 
         public bool IsPassed(string subsystem)
         {
-            foreach (var cfg in FilterConfig)
+            if (!subsystem.EndsWith("."))
+                subsystem += ".";
+            var filters = _solo.Count > 0 ? _solo : FilterChain;
+            foreach (var filter in filters)
             {
-                if(!cfg.IsEnabled)
+                if (!filter.Enabled)
                     continue;
-                var filter = cfg.Filter;
-                // pass
-                if (filter.PassFilters.Length > 0)
-                {
-                    foreach (var passFilter in filter.PassFilters)
-                    {
-                        var regExpression = _wildCardToRegular(passFilter);
-                        var isPassed = Regex.IsMatch(subsystem, regExpression);
-                        if (!isPassed)
-                            return false;
-                    }
-                }
 
-                // reject
-                foreach (var rejectFilter in filter.RejectFilters)
-                {
-                    var regExpression = _wildCardToRegular(rejectFilter);
-                    var isRejected = Regex.IsMatch(subsystem, regExpression);
-                    if (isRejected)
-                        return false;
-                }
+                var regExpression = _wildCardToRegular(filter.AllowSubsystemWildcard);
+                var pass = Regex.IsMatch(subsystem, regExpression);
+                if (pass)
+                    return true;
             }
-            return true;
+            return false;
         }
 
         private static string _wildCardToRegular(string value)

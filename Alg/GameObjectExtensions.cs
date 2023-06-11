@@ -10,8 +10,7 @@ namespace Assets.Plugins.Alg
 {
     public static class GameObjectExtensions
     {
-
-        #region transform
+        #region Transform
         public static void DestroyChildren(this Transform transform)
         {
             foreach (Transform children in transform)
@@ -28,18 +27,18 @@ namespace Assets.Plugins.Alg
         public static string GetDebugName(this Transform transform, bool addCoordinate = false, bool addHash = false, bool addSiblingIndex = false, int nesting = 10)
         {
             StringBuilder sb = new StringBuilder();
-            Assert.IsTrue(nesting >= 0);
             Assert.IsNotNull(transform);
             var pointer = transform;
             
-            sb.Append(pointer.name);
+            if(nesting >= 0) // For the negative nesting we totally omit the path
+                sb.Append(pointer.name);
             
             if (addCoordinate)
                 sb.Append($"[pos:{pointer.transform.position}]");
             if (addSiblingIndex)
                 sb.Append($"[{pointer.GetSiblingIndex()}]");
             if (addHash)
-                sb.Append($"[{pointer.GetHashCode()}]");
+                sb.Append($"#{pointer.gameObject.GetHashCode()}");
             
             while (pointer.parent != null && --nesting >= 0)
             {
@@ -81,11 +80,9 @@ namespace Assets.Plugins.Alg
             foreach (Transform c in t)
                 yield return c;
         }
-
         #endregion
 
-        #region components
-        
+        #region Component
         public static  T CopyComponent<T>(this GameObject destination, T original, bool deep = true) where T : Component
         {
             BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic
@@ -164,7 +161,7 @@ namespace Assets.Plugins.Alg
         }
         #endregion
 
-        #region misc
+        #region Misc
         public static Bounds BoundBox(this GameObject root)
         {
             Bounds bounds = new Bounds();
@@ -209,7 +206,7 @@ namespace Assets.Plugins.Alg
                 ForEachChildrenRecursive(transform.GetChild(i), func);
         }
 
-        // with interruption support
+        // With interruption support
         public static bool ForEachChildrenRecursiveTo(this Transform transform, Func<Transform, bool> func)
         {
             if (func(transform))
