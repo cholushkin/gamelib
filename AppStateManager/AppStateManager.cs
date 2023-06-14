@@ -80,7 +80,7 @@ public class AppStateManager : Singleton<AppStateManager>
 
     public void Start(IAppState state)
     {
-        LogChecker.Print(LogChecker.Level.Verbose, "Starting state '{state?.GetName()}'");
+        LogChecker.Print(LogChecker.Level.Verbose, $"Starting state '{state?.GetName()}'");
         if (_currenState != null && _currenState == state)
             LogChecker.PrintWarning(LogChecker.Level.Verbose, "Restarting same state");
 
