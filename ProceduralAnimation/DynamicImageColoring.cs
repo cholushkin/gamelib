@@ -3,6 +3,8 @@ using GameLib.Random;
 using UnityEngine;
 using UnityEngine.UI;
 
+// todo: RainbowColoring
+// todo: rename to RainbowImageColoring and inherit from RainbowColoring
 public class DynamicImageColoring : MonoBehaviour
 {
     public Color[] Colors;
