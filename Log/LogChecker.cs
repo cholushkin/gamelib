@@ -3,7 +3,6 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using Assets.Plugins.Alg;
-using Unity.VisualScripting;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 using Object = UnityEngine.Object;
@@ -174,7 +173,7 @@ namespace GameLib.Log
             // * Hash code of the game object. Based on AddContextHash parameter.
             // * Sibling index. Based on AddContextSiblingIndex parameter.
             // * Component name.Based on AddComponentName parameter.
-            var hasContext = !logChecker.Context.IsUnityNull() &&
+            var hasContext = logChecker.Context != null &&
                              (logChecker.AddContextPath || logChecker.AddContextCoordinate || logChecker.AddContextHash
                               || logChecker.AddContextSiblingIndex || logChecker.AddComponentName);
             if (hasContext)
