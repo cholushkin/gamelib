@@ -1,4 +1,3 @@
-using System.Linq;
 using UnityEngine;
 using UnityEditor.Toolbars;
 using UnityEditor.Overlays;
@@ -46,11 +45,43 @@ class EditorPlayWithDependencies : EditorToolbarButton
     }
 }
 
+
+[EditorToolbarElement(id, typeof(SceneView))]
+class EditorPlayAsRelease : EditorToolbarButton
+{
+    public const string id = "Gamelib/Scene/EditorPlayAsRelease"; // This ID is used to populate toolbar elements.
+
+    public EditorPlayAsRelease()
+    {
+        icon = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Libs/GameLib/Scene/Editor/Textures/PlayButtonRelease.png");
+        tooltip = "Play the game as it will play in release";
+        clicked += OnClick;
+    }
+
+    void OnClick()
+    {
+        Debug.Log($"Running release like scene order");
+        SessionState.EraseString("SceneWithDeps");
+
+        var conf = ScriptableObjectUtility.GetInstanceOfSingletonScriptableObject<SceneDevDependenciesConfig>();
+        if (conf == null)
+        {
+            Debug.LogWarning($"SceneDevDependenciesConfig is not found. Please create one using Right click in the project tree -> Create -> GameLib -> Scene -> SceneDevDependenciesConfig");
+            EditorApplication.isPlaying = true;
+            return;
+        }
+
+        EditorSceneManager.playModeStartScene = conf.StartScene;
+        EditorApplication.isPlaying = true;
+    }
+}
+
+
 [Overlay(typeof(SceneView), "Gamelib toolbar")]
 [Icon("Assets/unity.png")] // todo: gamelib icon
 public class EditorGamelibToolbar : ToolbarOverlay
 {
-    EditorGamelibToolbar() : base(EditorPlayWithDependencies.id)
+    EditorGamelibToolbar() : base(EditorPlayWithDependencies.id, EditorPlayAsRelease.id)
     { }
 }
 
