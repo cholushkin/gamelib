@@ -21,6 +21,9 @@ class EditorPlayWithDependencies : EditorToolbarButton
         EditorSceneManager.playModeStartScene = null;
         SessionState.EraseString("SceneWithDeps");
 
+        if(Application.isPlaying)
+            return;
+
         var activeScene = EditorSceneManager.GetActiveScene();
         Debug.Log($"Running '{activeScene.name}' with dependencies");
 
@@ -60,6 +63,9 @@ class EditorPlayAsRelease : EditorToolbarButton
 
     void OnClick()
     {
+        if (Application.isPlaying)
+            return;
+
         Debug.Log($"Running release like scene order");
         SessionState.EraseString("SceneWithDeps");
 
