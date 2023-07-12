@@ -14,6 +14,7 @@ public class SceneDevDependenciesConfig : ScriptableObject
     {
         public SceneAsset[] ShareableScenes;
         public SceneAsset[] AdditiveScenes;
+        public SceneAsset MakeActive;
     }
 
     [Serializable]

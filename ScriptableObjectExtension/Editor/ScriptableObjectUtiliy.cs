@@ -4,7 +4,6 @@ using UnityEngine;
 using UnityEditor;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using Debug = UnityEngine.Debug;
 
 [InitializeOnLoad]
