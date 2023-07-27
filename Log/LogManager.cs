@@ -26,6 +26,8 @@ namespace GameLib.Log
 
         void OnValidate()
         {
+            foreach (var filter in FilterChain)
+                filter.AllowSubsystemWildcard = filter.AllowSubsystemWildcard.ToLower().Trim();
             RefreshSoloCache();
         }
 
@@ -37,6 +39,7 @@ namespace GameLib.Log
 
         public bool IsPassed(string subsystem)
         {
+            subsystem = subsystem.ToLower().Trim();
             if (!subsystem.EndsWith("."))
                 subsystem += ".";
             var filters = _solo.Count > 0 ? _solo : FilterChain;
