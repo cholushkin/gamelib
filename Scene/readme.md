@@ -1,19 +1,41 @@
-# Scene dependencies
+# GameLib Scene Management
 
-Shareable scene starts first and lives until the game stops. It initializes all game's core objects and provides them to all other scenes. From a shareable scene, all other scenes are being loaded additively.
+## Overview
 
-Scene loading order looks like this:
+This GameLib Scene Management subsystem provides a set of scripts that simplify scene management in Unity projects during development process. It includes the following components:
 
-```
-[Shareable or list of shareables] -> [Game] -> [Level chunks, game modes, etc.]
+1. **SceneLoader**: A class that handles the loading, unloading, and replacing of scenes in Unity. It offers a set of public methods to interact with the scene loading process. It has a feature of loading sequence of scenes (dependencies) based on the name of one specific scene. 
 
-```
+2. **SceneDependenciesConfig**: A ScriptableObject that acts as a configuration file for defining scene dependencies and loading sequences. It allows you to set loading sequences for individual scenes or groups of scenes using wildcard patterns. Typically used only for development purposes.
 
-It's not convenient to always load the scenes in this order while the game is being developed. If the scene you are working on right now doesn't need core objects like a log manager, a sound manager, some analytics, and so on, you can run them in standard way (by hitting Play in the Editor). Otherwise, if you need to initialize core objects before your scene starts, use the GameLib.Scene helpers. To access "Run with dependencies" button press "Overlay menu" in the scene right corner. Then choose Gamelib toolbar. The black play button is what you need. This button can be moved to panel as shown in the picture:
+3. **EditorPlayWithDependencies**: A custom editor toolbar button script that lets you play the current active scene along with its dependencies in the Unity editor.
+
+4. **EditorPlayAsRelease**: Another custom editor toolbar button script that simulates playing the game in release mode in the Unity editor.
+
+
+## Usage
+
+### SceneLoader
+
+The `SceneLoader` class is responsible for loading, unloading, and replacing scenes. To use it, follow these steps:
+
+1. Attach the `SceneLoader` script to an empty GameObject in your scene.
+
+2. Create a `SceneDependenciesConfig` ScriptableObject asset (Create > GameLib/Scene/SceneDependenciesConfig) to define the loading sequences for your scenes. See examples in GameLibSandbox ( https://github.com/cholushkin/GameLibSandbox/tree/master/GameLibSandboxUnity/Assets/Settings).
+
+3. Configure the `AllSceneDependencies` array in the `SceneDependenciesConfig` asset, providing scene names (or wildcard patterns) along with their corresponding loading sequences. It's a good practice to end the list with wildcard '*' specifying the default depedecnies. 
+
+4. In your scripts, you can use the `SceneLoader` instance to load, unload, or replace scenes using the provided public methods (`Load`, `Unload`, `Replace`).
+
+### Editor Special Play Buttons
+
+The editor special play buttons are custom toolbar buttons and overlays in the Unity editor. They provide convenient way for testing scenes during development process. To access a toolbar containing special play buttons press "Overlay menu" in the scene right corner then choose "Gamelib toolbar".
+
+1. **EditorPlayWithDependencies**: This button, represented by the black play icon, allows you to play the current active scene along with its dependencies. Clicking this button sets the active scene in the `SessionState`, and then it triggers the play mode with scene dependencies.
+
+2. **EditorPlayAsRelease**: This button, represented by the white play icon, simulates playing the game in release mode. Clicking this button sets the starting scene to the first scene in the build settings and triggers the play mode. The first scene must always contain a SceneLoader object which has release scene loading sequence.
+
+If the scene you're working on right now doesn't require core objects like a log manager, a sound manager, some analytics and so on, you can run them in standard way by hitting Play in the Editor.
 
 ![PlayButtonExample](DocImages~/PlayButtonExample.png)
 
-
-If you hit "Run with dependencies" button SceneLoader which is located in the Start Scene will load current active scene with all its dependencies. If there are other scene loaded they will not be loaded for a run time. In other worlds you will run active scene with its dependencies in isolation. 
-
-If you have multiple scenes loaded in hierarchy right click on the scene and "Set Active Scene" will make it active.
