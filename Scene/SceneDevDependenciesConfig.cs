@@ -1,68 +1,71 @@
 using System;
-using System.Linq;
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
-using UnityEditor;
 using UnityEngine;
 using UnityEngine.Assertions;
 
 
-[CreateAssetMenu(fileName = "SceneDevDependenciesConfig", menuName = "GameLib/Scene/SceneDevDependenciesConfig", order = 1)]
-public class SceneDevDependenciesConfig : ScriptableObject
+[CreateAssetMenu(fileName = "SceneDependenciesConfig", menuName = "GameLib/Scene/SceneDependenciesConfig", order = 1)]
+public class SceneDependenciesConfig : ScriptableObject
 {
     [Serializable]
-    public class SceneDependencies
+    public class LoadingSequence
     {
-        public SceneAsset[] ShareableScenes;
-        public SceneAsset[] AdditiveScenes;
-        public SceneAsset MakeActive;
+        public List<string> Additives;
+        public string ActiveScene; // Make scene with this name active. Could be null
+
+        public LoadingSequence()
+        {
+            Additives = new List<string>();
+        }
+
+        public LoadingSequence Clone()
+        {
+            LoadingSequence clonedSequence = new LoadingSequence();
+            clonedSequence.ActiveScene = this.ActiveScene;
+            clonedSequence.Additives.AddRange(this.Additives);
+            return clonedSequence;
+        }
     }
 
     [Serializable]
     public class PairSceneDep
     {
-        public SceneAsset Scene;
-        public SceneDependencies Dependencies;
+        public string DevSceneOrWildcard;
+        public LoadingSequence Sequence;
     }
 
-    [Serializable]
-    public class PairSceneDepWildcard
+    public PairSceneDep[] AllSceneDependencies; // (name/wildcard of the scene, sequence)
+
+
+
+    public LoadingSequence GetSequence(string scene)
     {
-        public string Wildcard;
-        public SceneDependencies Dependencies;
-    }
+        Assert.IsFalse(string.IsNullOrEmpty(scene));
 
-    public SceneAsset StartScene;
-    public PairSceneDep[] Dependencies;
-    public PairSceneDepWildcard[] WildcardDependencies;
-    public SceneDependencies DefaultDependencies;
-
-
-    public SceneDependencies GetDependencies(string sceneName)
-    {
-        Assert.IsTrue(sceneName != StartScene.name);
-        Assert.IsFalse(string.IsNullOrEmpty(sceneName));
-
-        // First try to find dpendencies in Dependencies
-        var dep = Dependencies.FirstOrDefault(x => x.Scene.name == sceneName);
-        if (dep != null)
-            return dep.Dependencies;
-
-        // Then using wildcard
-        foreach (var pairSceneDepWildcard in WildcardDependencies)
+        foreach (var dep in AllSceneDependencies)
         {
-            var regExpression = _wildCardToRegular(pairSceneDepWildcard.Wildcard);
-            var pass = Regex.IsMatch(sceneName, regExpression);
-            if (pass)
-                return pairSceneDepWildcard.Dependencies;
+            // Wildcard check
+            if (dep.DevSceneOrWildcard.Contains('*'))
+            {
+                var regExpression = _wildCardToRegular(dep.DevSceneOrWildcard);
+                if (Regex.IsMatch(scene, regExpression))
+                    return dep.Sequence;
+            }
+            else
+            {
+                if (dep.DevSceneOrWildcard == scene)
+                {
+                    return dep.Sequence;
+                }
+            }
+            
         }
-
-        // Then return default (could be null)
-        return DefaultDependencies;
+        return null;
     }
 
     private static string _wildCardToRegular(string value)
     {
         return "^" + Regex.Escape(value).Replace("\\*", ".*") + "$";
     }
-
 }

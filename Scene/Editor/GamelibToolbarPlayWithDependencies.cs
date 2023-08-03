@@ -3,6 +3,8 @@ using UnityEditor.Toolbars;
 using UnityEditor.Overlays;
 using UnityEditor;
 using UnityEditor.SceneManagement;
+using UnityEngine.SceneManagement;
+
 
 [EditorToolbarElement(id, typeof(SceneView))]
 class EditorPlayWithDependencies : EditorToolbarButton
@@ -12,39 +14,23 @@ class EditorPlayWithDependencies : EditorToolbarButton
     public EditorPlayWithDependencies()
     {
         icon = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Libs/GameLib/Scene/Editor/Textures/PlayButton.png");
-        tooltip = "Play current active scene loading its dependencies";
+        tooltip = "Play current active scene with its dependencies";
         clicked += OnClick;
     }
 
     void OnClick()
     {
         EditorSceneManager.playModeStartScene = null;
-        SessionState.EraseString("SceneWithDeps");
+        SessionState.EraseString("DevSceneWithDeps");
 
-        if(Application.isPlaying)
+        if (Application.isPlaying)
             return;
 
         var activeScene = EditorSceneManager.GetActiveScene();
         Debug.Log($"Running '{activeScene.name}' with dependencies");
 
-        var conf = ScriptableObjectUtility.GetInstanceOfSingletonScriptableObject<SceneDevDependenciesConfig>();
-        if (conf == null)
-        {
-            Debug.LogWarning($"SceneDevDependenciesConfig is not found. Please create one using Right click in the project tree -> Create -> GameLib -> Scene -> SceneDevDependenciesConfig");
-            EditorApplication.isPlaying = true;
-            return;
-        }
-
-        if (conf.StartScene.name == activeScene.name)
-        {
-            Debug.Log("Start scene contains it's dependencies in SceneLoader object");
-            EditorApplication.isPlaying = true;
-            return;
-        }
-
-        SessionState.SetString("SceneWithDeps", activeScene.name);
-        EditorSceneManager.playModeStartScene = conf.StartScene;
-        EditorApplication.isPlaying = true;
+        SessionState.SetString("DevSceneWithDeps", activeScene.name);
+        EditorPlayAsRelease.RunStartScene();
     }
 }
 
@@ -57,30 +43,46 @@ class EditorPlayAsRelease : EditorToolbarButton
     public EditorPlayAsRelease()
     {
         icon = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Libs/GameLib/Scene/Editor/Textures/PlayButtonRelease.png");
-        tooltip = "Play the game as it will play in release";
+        tooltip = "Play the game as it will play in RELEASE";
         clicked += OnClick;
     }
 
     void OnClick()
     {
+        EditorSceneManager.playModeStartScene = null;
+        SessionState.EraseString("DevSceneWithDeps");
+
         if (Application.isPlaying)
             return;
 
-        Debug.Log($"Running release like scene order");
-        SessionState.EraseString("SceneWithDeps");
+        Debug.Log("Running release scene order");
+        RunStartScene();
+    }
 
-        var conf = ScriptableObjectUtility.GetInstanceOfSingletonScriptableObject<SceneDevDependenciesConfig>();
-        if (conf == null)
-        {
-            Debug.LogWarning($"SceneDevDependenciesConfig is not found. Please create one using Right click in the project tree -> Create -> GameLib -> Scene -> SceneDevDependenciesConfig");
-            EditorApplication.isPlaying = true;
-            return;
-        }
+    internal static void RunStartScene()
+    {
+        var startingScenePath = SceneUtility.GetScenePathByBuildIndex(0);
 
-        EditorSceneManager.playModeStartScene = conf.StartScene;
+        // Note:  Unity 2023.1.4f1 bug ?
+        // Remove scene from hierarchy if it's game starting scene and it has "not loaded" state in hierarchy,
+        // otherwise Unity Player won't start - some loaded scene will stuck with 'is unloading' status in hierarchy.
+        // Probably Unity trying to remove "not loaded" scene and load it in the same time and it has some conflict.
+        // Other possible workaround could be: load this scene additively here and unload it again to "not loaded" state when game stops
+        foreach (var sceneSetup in EditorSceneManager.GetSceneManagerSetup())
+            if (startingScenePath == sceneSetup.path && !sceneSetup.isLoaded)
+            {
+                EditorSceneManager.CloseScene(SceneManager.GetSceneByPath(startingScenePath), true);
+                break;
+            }
+
+        SceneAsset startingSceneAsset = AssetDatabase.LoadAssetAtPath<SceneAsset>(startingScenePath);
+        EditorSceneManager.playModeStartScene = startingSceneAsset;
         EditorApplication.isPlaying = true;
     }
 }
+
+
+
 
 
 [Overlay(typeof(SceneView), "Gamelib toolbar")]
@@ -97,7 +99,9 @@ public static class SceneLoadingHook
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSplashScreen)]
     static void OnBeforeSplashScreen()
     {
-        if (SessionState.GetString("SceneWithDeps", null) == null)
+        if (string.IsNullOrEmpty(SessionState.GetString("DevSceneWithDeps", null)))
             EditorSceneManager.playModeStartScene = null;
+        else
+            Debug.Log($"Starting dev scene '{SessionState.GetString("DevSceneWithDeps", null)}'");
     }
 }

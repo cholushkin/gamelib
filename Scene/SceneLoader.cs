@@ -1,6 +1,7 @@
 using System.Collections;
 using Alg;
 using UnityEngine;
+using UnityEngine.Assertions;
 using UnityEngine.SceneManagement;
 
 #if UNITY_EDITOR
@@ -10,28 +11,30 @@ using UnityEditor.SceneManagement;
 
 public class SceneLoader : Singleton<SceneLoader>
 {
-    public SceneDevDependenciesConfig.SceneDependencies SceneLoadingOrder;
-    public SceneDevDependenciesConfig DevSceneDependencies;
-    public bool IsBusy => _busyCounter > 0;
+    public SceneDependenciesConfig.LoadingSequence LoadingSequence;
+#if UNITY_EDITOR
+    public SceneDependenciesConfig DevSceneConfig;
+#endif
 
+    public bool IsBusy => _busyCounter > 0;
     private int _busyCounter;
 
     #region external API
-    public void Load(SceneAsset scene, bool makeActive)
+    public void Load(string scene, bool makeActive)
     {
-        StartCoroutine(LoadScene(scene.name, makeActive));
+        StartCoroutine(LoadScene(scene, makeActive));
     }
 
-    public void Unload(SceneAsset scene, SceneAsset makeActive = null)
+    public void Unload(string scene, string makeActive = null)
     {
-        StartCoroutine(UnloadScene(scene.name));
-        if(makeActive != null)
-            SceneManager.SetActiveScene(SceneManager.GetSceneByName(makeActive.name));
+        StartCoroutine(UnloadScene(scene));
+        if (makeActive != null)
+            SceneManager.SetActiveScene(SceneManager.GetSceneByName(makeActive));
     }
 
-    public void Replace(SceneAsset loadScene, SceneAsset unloadScene, bool makeActive)
+    public void Replace(string loadScene, string unloadScene, bool makeActive)
     {
-        StartCoroutine(ReplaceScene(loadScene?.name, unloadScene?.name, makeActive));
+        StartCoroutine(ReplaceScene(loadScene, unloadScene, makeActive));
     }
     #endregion
 
@@ -39,22 +42,28 @@ public class SceneLoader : Singleton<SceneLoader>
     {
         base.Awake();
 
-        string sceneName = null;
-
 #if UNITY_EDITOR
-        sceneName = SessionState.GetString("SceneWithDeps", null);
+        // Override loading sequence from dependencies config
+        var sceneName = SessionState.GetString("DevSceneWithDeps", null);
         EditorSceneManager.playModeStartScene = null;
-        SessionState.EraseString("SceneWithDeps");
+        SessionState.EraseString("DevSceneWithDeps");
 
         if (!string.IsNullOrEmpty(sceneName))
         {
-            var dep = DevSceneDependencies.GetDependencies(sceneName);
-            SceneLoadingOrder = dep; // override from dependencies config
-            // Will run the scene in isolation if no dependencies found
+            var seq = DevSceneConfig.GetSequence(sceneName);
+            if (seq != null)
+            {
+                // Add current scene to the list of loading sequence
+                seq = seq.Clone();
+                seq.Additives.Insert(0, sceneName);
+
+                // Overwrite LoadingSequence
+                LoadingSequence = seq;
+            }
         }
 #endif
 
-        StartCoroutine(LoadScenes(SceneLoadingOrder, sceneName));
+        StartCoroutine(LoadScenes(LoadingSequence));
     }
 
     IEnumerator LoadScene(string sceneName, bool makeActive = false)
@@ -101,19 +110,10 @@ public class SceneLoader : Singleton<SceneLoader>
         _busyCounter--;
     }
 
-    IEnumerator LoadScenes(SceneDevDependenciesConfig.SceneDependencies sceneLoadingOrder, string sceneName = null)
+    IEnumerator LoadScenes(SceneDependenciesConfig.LoadingSequence sequence)
     {
-        if (sceneLoadingOrder != null)
-            foreach (var shareableScene in SceneLoadingOrder.ShareableScenes)
-                yield return LoadScene(shareableScene.name);
-
-#if UNITY_EDITOR
-        if (!string.IsNullOrEmpty(sceneName))
-            yield return LoadScene(sceneName);
-#endif
-
-        if (sceneLoadingOrder != null)
-            foreach (var additiveScene in SceneLoadingOrder.AdditiveScenes)
-                yield return LoadScene(additiveScene.name);
+        Assert.IsNotNull(sequence);
+        foreach (var additiveScene in sequence.Additives)
+            yield return LoadScene(additiveScene, sequence.ActiveScene == additiveScene );
     }
 }
