@@ -13,19 +13,6 @@ public class SceneDependenciesConfig : ScriptableObject
     {
         public List<string> Additives;
         public string ActiveScene; // Make scene with this name active. Could be null
-
-        public LoadingSequence()
-        {
-            Additives = new List<string>();
-        }
-
-        public LoadingSequence Clone()
-        {
-            LoadingSequence clonedSequence = new LoadingSequence();
-            clonedSequence.ActiveScene = this.ActiveScene;
-            clonedSequence.Additives.AddRange(this.Additives);
-            return clonedSequence;
-        }
     }
 
     [Serializable]
