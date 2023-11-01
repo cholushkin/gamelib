@@ -8,7 +8,7 @@ using ResourcesHelper;
 using UnityEngine;
 using UnityEngine.Assertions;
 
-public class DebugLayout : MonoBehaviour
+public class DebugLayoutB : MonoBehaviour
 {
     public GameObject PrefabLayout;
 
