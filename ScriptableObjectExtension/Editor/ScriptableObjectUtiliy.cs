@@ -39,7 +39,8 @@ public static class ScriptableObjectUtility
     }
 
 
-    public static T CreateAsset<T>(string path, string name = "") where T : ScriptableObject
+    // Note: the path should start from "Assets"
+    public static T CreateAsset<T>(string path, string name = "", bool refresh = false, bool focus = false) where T : ScriptableObject
     {
         T asset = ScriptableObject.CreateInstance<T>();
 
@@ -53,8 +54,10 @@ public static class ScriptableObjectUtility
         AssetDatabase.CreateAsset(asset, assetPathAndName);
 
         AssetDatabase.SaveAssets();
-        //AssetDatabase.Refresh();
-        //EditorUtility.FocusProjectWindow();
+        if(refresh)
+            AssetDatabase.Refresh();
+        if(focus)
+            EditorUtility.FocusProjectWindow();
         return asset;
     }
 
