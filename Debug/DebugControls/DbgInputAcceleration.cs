@@ -1,16 +1,19 @@
 using UnityEngine;
 
-public class DbgInputAcceleration : Pane
+namespace GameLib.Dbg
 {
-    // todo: visualization
-    public override void InitializeState()
+    public class DbgInputAcceleration : Pane
     {
-        base.InitializeState();
-        DisableButton();
-    }
+        // todo: visualization
+        public override void InitializeState()
+        {
+            base.InitializeState();
+            DisableButton();
+        }
 
-    public override void Update()
-    {
-        SetText($"Acceleration:\n{Input.acceleration}");
+        public override void Update()
+        {
+            SetText($"Acceleration:\n{Input.acceleration}");
+        }
     }
 }

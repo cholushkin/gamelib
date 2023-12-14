@@ -1,11 +1,14 @@
 ﻿using UnityEngine;
 
-public class DbgScreenMode : Pane
+namespace GameLib.Dbg
 {
-    public override void InitializeState()
+    public class DbgScreenMode : Pane
     {
-        base.InitializeState();
-        DisableButton();
-        SetText($"Screen mode: {Screen.currentResolution.ToString()}");
+        public override void InitializeState()
+        {
+            base.InitializeState();
+            DisableButton();
+            SetText($"Screen mode: {Screen.currentResolution.ToString()}");
+        }
     }
 }

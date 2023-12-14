@@ -1,10 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
-using Assets.Plugins.Alg;
 using UnityEngine;
 using UnityEditor;
 
-namespace Gamelib
+namespace GameLib.Alg
 {
     public class ComponentsCopier
     {

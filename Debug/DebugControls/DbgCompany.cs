@@ -1,11 +1,15 @@
 ﻿using UnityEngine;
 
-public class DbgCompany : Pane
+
+namespace GameLib.Dbg
 {
-    public override void InitializeState()
+    public class DbgCompany : Pane
     {
-        base.InitializeState();
-        DisableButton();
-        SetText($"Company: {Application.companyName}");
+        public override void InitializeState()
+        {
+            base.InitializeState();
+            DisableButton();
+            SetText($"Company: {Application.companyName}");
+        }
     }
 }

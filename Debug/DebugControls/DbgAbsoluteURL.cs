@@ -1,11 +1,14 @@
 ﻿using UnityEngine;
 
-public class DbgAbsoluteURL : Pane
+namespace GameLib.Dbg
 {
-    public override void InitializeState()
+    public class DbgAbsoluteURL : Pane
     {
-        base.InitializeState();
-        DisableButton();
-        SetText($"Absolute URL:{Application.absoluteURL}");
+        public override void InitializeState()
+        {
+            base.InitializeState();
+            DisableButton();
+            SetText($"Absolute URL:{Application.absoluteURL}");
+        }
     }
 }

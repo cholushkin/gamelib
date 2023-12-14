@@ -2,6 +2,9 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class DbgPlaceholder : Empty
+namespace GameLib.Dbg
 {
+    public class DbgPlaceholder : Empty
+    {
+    }
 }

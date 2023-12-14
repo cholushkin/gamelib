@@ -1,18 +1,21 @@
 ﻿using Events;
 using UnityEngine;
 
-public class DbgScreenResolution : Pane, IHandle<AspectRatioHelper.EventScreenOrientationChanged>
+namespace GameLib.Dbg
 {
-    public override void InitializeState()
+    public class DbgScreenResolution : Pane, IHandle<AspectRatioHelper.EventScreenOrientationChanged>
     {
-        base.InitializeState();
-        DisableButton();
-        GlobalEventAggregator.EventAggregator.Subscribe(this);
-        SetText($"Resolution: {Screen.width}x{Screen.height}");
-    }
+        public override void InitializeState()
+        {
+            base.InitializeState();
+            DisableButton();
+            GlobalEventAggregator.EventAggregator.Subscribe(this);
+            SetText($"Resolution: {Screen.width}x{Screen.height}");
+        }
 
-    public void Handle(AspectRatioHelper.EventScreenOrientationChanged message)
-    {
-        SetText($"Resolution: {Screen.width}x{Screen.height}");
+        public void Handle(AspectRatioHelper.EventScreenOrientationChanged message)
+        {
+            SetText($"Resolution: {Screen.width}x{Screen.height}");
+        }
     }
 }

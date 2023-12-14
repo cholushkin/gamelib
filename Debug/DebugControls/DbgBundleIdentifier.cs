@@ -1,12 +1,14 @@
 ﻿using UnityEngine;
 
-public class DbgBundleIdentifier : Pane
+namespace GameLib.Dbg
 {
-    public override void InitializeState()
+    public class DbgBundleIdentifier : Pane
     {
-        base.InitializeState();
-        DisableButton();
-        SetText($"Bundle ID: {Application.identifier}");
+        public override void InitializeState()
+        {
+            base.InitializeState();
+            DisableButton();
+            SetText($"Bundle ID: {Application.identifier}");
+        }
     }
 }
-

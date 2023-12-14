@@ -6,7 +6,7 @@ using UnityEngine;
 using UnityEngine.Assertions;
 using Object = UnityEngine.Object;
 
-namespace Assets.Plugins.Alg
+namespace GameLib.Alg
 {
     public static class GameObjectExtensions
     {
@@ -15,6 +15,12 @@ namespace Assets.Plugins.Alg
         {
             foreach (Transform children in transform)
                 Object.Destroy(children.gameObject);
+        }
+
+        public static void DestroyChildrenImmediate(this Transform transform)
+        {
+            foreach (Transform children in transform)
+                Object.DestroyImmediate(children.gameObject);
         }
 
         public static void MoveChildren(this Transform transform, Transform dstParent)

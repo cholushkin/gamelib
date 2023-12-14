@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using Alg;
+using GameLib.Alg;
 using MonsterLove.Collections;
 using UnityEngine;
 

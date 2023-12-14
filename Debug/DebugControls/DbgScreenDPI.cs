@@ -1,12 +1,15 @@
 ﻿using System.Globalization;
 using UnityEngine;
 
-public class DbgScreenDPI : Pane
+namespace GameLib.Dbg
 {
-    public override void InitializeState()
+    public class DbgScreenDPI : Pane
     {
-        base.InitializeState();
-        DisableButton();
-        SetText($"DPI:{Screen.dpi.ToString(CultureInfo.InvariantCulture)}");
+        public override void InitializeState()
+        {
+            base.InitializeState();
+            DisableButton();
+            SetText($"DPI:{Screen.dpi.ToString(CultureInfo.InvariantCulture)}");
+        }
     }
 }

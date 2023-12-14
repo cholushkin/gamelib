@@ -1,12 +1,14 @@
 ﻿using UnityEngine;
 
-public class DbgGenuineBuild : Pane
+namespace GameLib.Dbg
 {
-    public override void InitializeState()
+    public class DbgGenuineBuild : Pane
     {
-        base.InitializeState();
-        DisableButton();
-        SetText($"Genuine: {Application.genuineCheckAvailable}:{Application.genuine.ToString()}");
+        public override void InitializeState()
+        {
+            base.InitializeState();
+            DisableButton();
+            SetText($"Genuine: {Application.genuineCheckAvailable}:{Application.genuine.ToString()}");
+        }
     }
 }
-

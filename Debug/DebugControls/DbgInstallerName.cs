@@ -1,12 +1,15 @@
 ﻿using UnityEngine;
 
-public class DbgInstallerName : Pane
+
+namespace GameLib.Dbg
 {
-    public override void InitializeState()
+    public class DbgInstallerName : Pane
     {
-        base.InitializeState();
-        DisableButton();
-        SetText($"Installer: {Application.installerName}");
+        public override void InitializeState()
+        {
+            base.InitializeState();
+            DisableButton();
+            SetText($"Installer: {Application.installerName}");
+        }
     }
 }
-

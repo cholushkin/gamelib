@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using Alg;
+using GameLib.Alg;
 using UnityEngine;
 
 namespace GameLib.Log

@@ -1,26 +1,27 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
-public class DbgSetTargetFPS : Pane
+namespace GameLib.Dbg
 {
-    private int[] _targetFps = { 30, 60, 120, 300 };
-
-    public override void InitializeState()
+    public class DbgSetTargetFPS : Pane
     {
-        base.InitializeState();
-        SetStatesAmount(_targetFps.Length);
-        RefreshText();
-    }
+        private int[] _targetFps = {30, 60, 120, 300};
 
-    public override void OnStateChanged(int stateIndex)
-    {
-        Application.targetFrameRate = _targetFps[stateIndex];
-        RefreshText();
-    }
+        public override void InitializeState()
+        {
+            base.InitializeState();
+            SetStatesAmount(_targetFps.Length);
+            RefreshText();
+        }
 
-    private void RefreshText()
-    {
-        SetText($"Target fps: {Application.targetFrameRate}");
+        public override void OnStateChanged(int stateIndex)
+        {
+            Application.targetFrameRate = _targetFps[stateIndex];
+            RefreshText();
+        }
+
+        private void RefreshText()
+        {
+            SetText($"Target fps: {Application.targetFrameRate}");
+        }
     }
 }

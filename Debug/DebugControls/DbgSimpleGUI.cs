@@ -1,19 +1,22 @@
 ﻿using GameGUI;
 
-public class DbgSimpleGUI : Pane
+namespace GameLib.Dbg
 {
-    public SimpleGUI SimpleGUI;
-
-
-    public override void InitializeState()
+    public class DbgSimpleGUI : Pane
     {
-        base.InitializeState();
-        DisableButton();
-    }
+        public SimpleGUI SimpleGUI;
 
-    public override void Update()
-    {
-        var gameStatesStr = $"<b>[SimpleGUI]</b>\n{SimpleGUI.DbgGetStackString()}";
-        SetText(gameStatesStr);
+
+        public override void InitializeState()
+        {
+            base.InitializeState();
+            DisableButton();
+        }
+
+        public override void Update()
+        {
+            var gameStatesStr = $"<b>[SimpleGUI]</b>\n{SimpleGUI.DbgGetStackString()}";
+            SetText(gameStatesStr);
+        }
     }
 }

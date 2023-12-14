@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-using Alg;
+using GameLib.Alg;
 using UnityEngine;
 
 
@@ -7,13 +7,10 @@ namespace GameLib.Time
 {
     public class TimeScaleStack : Singleton<TimeScaleStack>
     {
-        Stack<float> _stack = new Stack<float>();
-        List<int> _defferedPopings = new List<int>();
+        Stack<float> _stack = new();
+        List<int> _defferedPopings = new();
 
-        public bool IsPaused
-        {
-            get { return _stack.Count > 0 ? Mathf.Approximately(_stack.Peek(), 0f) : Mathf.Approximately(UnityEngine.Time.timeScale, 0f); }
-        }
+        public bool IsPaused => _stack.Count > 0 ? Mathf.Approximately(_stack.Peek(), 0f) : Mathf.Approximately(UnityEngine.Time.timeScale, 0f);
 
         public int Push(float scale)
         {
@@ -49,20 +46,19 @@ namespace GameLib.Time
 
         private void PopDeffered()
         {
-            bool poped = false;
+            bool popped;
             do
             {
-                poped = false;
+                popped = false;
                 for (int i = _defferedPopings.Count - 1; i > -1; i--)
                     if (_stack.Count == _defferedPopings[i])
                     {
                         _defferedPopings.RemoveAt(i);
                         _stack.Pop();
-                        poped = true;
+                        popped = true;
                         break;
                     }
-            } while (poped);
+            } while (popped);
         }
     }
-
 }

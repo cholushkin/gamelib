@@ -1,8 +1,8 @@
-﻿using System;
+﻿using GameLib.Alg;
+using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
-using Assets.Plugins.Alg;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 using Object = UnityEngine.Object;

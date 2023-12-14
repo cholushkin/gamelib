@@ -1,11 +1,14 @@
 ﻿using UnityEngine;
 
-public class DbgCachePath : Pane
+namespace GameLib.Dbg
 {
-    public override void InitializeState()
+    public class DbgCachePath : Pane
     {
-        base.InitializeState();
-        DisableButton();
-        SetText($"Cache: {Application.temporaryCachePath}");
+        public override void InitializeState()
+        {
+            base.InitializeState();
+            DisableButton();
+            SetText($"Cache: {Application.temporaryCachePath}");
+        }
     }
 }

@@ -1,11 +1,14 @@
 ﻿using UnityEngine;
 
-public class DbgConsoleLogPath : Pane
+namespace GameLib.Dbg
 {
-    public override void InitializeState()
+    public class DbgConsoleLogPath : Pane
     {
-        base.InitializeState();
-        DisableButton();
-        SetText($"Log: {Application.consoleLogPath}");
+        public override void InitializeState()
+        {
+            base.InitializeState();
+            DisableButton();
+            SetText($"Log: {Application.consoleLogPath}");
+        }
     }
 }

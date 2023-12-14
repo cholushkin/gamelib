@@ -1,11 +1,14 @@
 ﻿using UnityEngine;
 
-public class DbgCloudProjectID : Pane
+namespace GameLib.Dbg
 {
-    public override void InitializeState()
+    public class DbgCloudProjectID : Pane
     {
-        base.InitializeState();
-        DisableButton();
-        SetText($"Cloud ID: {Application.cloudProjectId}");
+        public override void InitializeState()
+        {
+            base.InitializeState();
+            DisableButton();
+            SetText($"Cloud ID: {Application.cloudProjectId}");
+        }
     }
 }

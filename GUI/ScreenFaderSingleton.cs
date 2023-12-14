@@ -1,27 +1,30 @@
-﻿using Alg;
-using DG.Tweening;
+﻿using DG.Tweening;
+using GameLib.Alg;
 
-public class ScreenFaderSingleton : Singleton<ScreenFaderSingleton>
+namespace GameLib
 {
-    public ScreenTransitionProcessor CanvasController;
-    private TweenCallback _fadeToTranspUserCallback;
-
-    public void ToColor(TweenCallback fadeinCallback = null, bool isInstant = false)
+    public class ScreenFaderSingleton : Singleton<ScreenFaderSingleton>
     {
-        CanvasController.SetBlockInput(true);
-        CanvasController.Appear(fadeinCallback, isInstant);
-    }
+        public ScreenTransitionProcessor CanvasController;
+        private TweenCallback _fadeToTranspUserCallback;
 
-    public void ToTransparent(TweenCallback disappearCallback = null, bool isInstant = false)
-    {
-        _fadeToTranspUserCallback = disappearCallback;
-        CanvasController.Disappear(_onFinishToTransparent, isInstant);
-    }
+        public void ToColor(TweenCallback fadeinCallback = null, bool isInstant = false)
+        {
+            CanvasController.SetBlockInput(true);
+            CanvasController.Appear(fadeinCallback, isInstant);
+        }
 
-    private void _onFinishToTransparent()
-    {
-        CanvasController.SetBlockInput(false);
-        _fadeToTranspUserCallback?.Invoke();
-    }
+        public void ToTransparent(TweenCallback disappearCallback = null, bool isInstant = false)
+        {
+            _fadeToTranspUserCallback = disappearCallback;
+            CanvasController.Disappear(_onFinishToTransparent, isInstant);
+        }
 
+        private void _onFinishToTransparent()
+        {
+            CanvasController.SetBlockInput(false);
+            _fadeToTranspUserCallback?.Invoke();
+        }
+
+    }
 }

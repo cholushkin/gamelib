@@ -1,11 +1,14 @@
 ﻿using UnityEngine;
 
-public class DbgBuildGUID : Pane
+namespace GameLib.Dbg
 {
-    public override void InitializeState()
+    public class DbgBuildGUID : Pane
     {
-        base.InitializeState();
-        DisableButton();
-        SetText($"Build GUID: {Application.buildGUID}");
+        public override void InitializeState()
+        {
+            base.InitializeState();
+            DisableButton();
+            SetText($"Build GUID: {Application.buildGUID}");
+        }
     }
 }

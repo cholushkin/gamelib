@@ -1,8 +1,7 @@
-using Assets.Plugins.Alg;
 using GameLib.Log;
 using UnityEngine;
 
-namespace Alg
+namespace GameLib.Alg
 {
     public class Singleton<T> : MonoBehaviour where T : Singleton<T>
     {

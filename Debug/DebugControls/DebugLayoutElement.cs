@@ -1,8 +1,8 @@
-﻿using Assets.Plugins.Alg;
+﻿using GameLib.Alg;
 using UnityEngine;
 using UnityEngine.Assertions;
-
-namespace GameLib
+    
+namespace GameLib.Dbg
 {
     // base class for all widgets
     public abstract class DebugLayoutElement : MonoBehaviour
@@ -59,7 +59,4 @@ namespace GameLib
 
         public abstract string GetPrefabBasedOnName();
     }
-
-
-
 }

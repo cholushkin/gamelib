@@ -1,19 +1,22 @@
 ﻿using UnityEngine;
 
-public class DbgApplicationVersion : Pane
+namespace GameLib.Dbg
 {
-    public string FormatString;
-
-    public override void Reset()
+    public class DbgApplicationVersion : Pane
     {
-        base.Reset();
-        FormatString = "Ver.{0}";
-    }
+        public string FormatString;
 
-    public override void InitializeState()
-    {
-        base.InitializeState();
-        SetText(string.Format(FormatString, Application.version));
-        DisableButton();
+        public override void Reset()
+        {
+            base.Reset();
+            FormatString = "Ver.{0}";
+        }
+
+        public override void InitializeState()
+        {
+            base.InitializeState();
+            SetText(string.Format(FormatString, Application.version));
+            DisableButton();
+        }
     }
 }

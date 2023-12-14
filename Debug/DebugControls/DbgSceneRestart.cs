@@ -1,18 +1,21 @@
 ﻿using UnityEngine.SceneManagement;
 
-public class DbgSceneRestart : Pane
+namespace GameLib.Dbg
 {
-    public string SceneName;
-
-    public override void InitializeState()
+    public class DbgSceneRestart : Pane
     {
-        base.InitializeState();
-        SetText($"<color=red>Restart '{SceneName}' scene</color>");
-    }
+        public string SceneName;
 
-    public override void OnClick()
-    {
-        base.OnClick();
-        SceneManager.LoadScene(SceneName);
+        public override void InitializeState()
+        {
+            base.InitializeState();
+            SetText($"<color=red>Restart '{SceneName}' scene</color>");
+        }
+
+        public override void OnClick()
+        {
+            base.OnClick();
+            SceneManager.LoadScene(SceneName);
+        }
     }
 }

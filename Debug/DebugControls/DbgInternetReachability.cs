@@ -1,12 +1,15 @@
 ﻿using UnityEngine;
 
-public class DbgInternetReachability : Pane
+
+namespace GameLib.Dbg
 {
-    public override void InitializeState()
+    public class DbgInternetReachability : Pane
     {
-        base.InitializeState();
-        DisableButton();
-        SetText($"Internet: {Application.internetReachability}");
+        public override void InitializeState()
+        {
+            base.InitializeState();
+            DisableButton();
+            SetText($"Internet: {Application.internetReachability}");
+        }
     }
 }
-

@@ -1,12 +1,14 @@
 ﻿using UnityEngine;
 
-public class DbgSystemLanguage : Pane
+namespace GameLib.Dbg
 {
-    public override void InitializeState()
+    public class DbgSystemLanguage : Pane
     {
-        base.InitializeState();
-        DisableButton();
-        SetText($"Language: {Application.systemLanguage.ToString()}");
+        public override void InitializeState()
+        {
+            base.InitializeState();
+            DisableButton();
+            SetText($"Language: {Application.systemLanguage.ToString()}");
+        }
     }
 }
-

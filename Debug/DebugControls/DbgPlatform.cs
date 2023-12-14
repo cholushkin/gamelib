@@ -1,12 +1,15 @@
 ﻿using UnityEngine;
 
-public class DbgPlatform : Pane
+namespace GameLib.Dbg
 {
-    public override void InitializeState()
+    public class DbgPlatform : Pane
     {
-        base.InitializeState();
-        DisableButton();
-        SetText($"Platform: {Application.platform.ToString()}");
+        public override void InitializeState()
+        {
+            base.InitializeState();
+            DisableButton();
+            SetText($"Platform: {Application.platform.ToString()}");
+        }
     }
 }
 

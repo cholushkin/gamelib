@@ -1,12 +1,15 @@
 ﻿using UnityEngine;
 
-public class DbgUnityVersion : Pane
+namespace GameLib.Dbg
 {
-    public override void InitializeState()
+    public class DbgUnityVersion : Pane
     {
-        base.InitializeState();
-        DisableButton();
-        SetText($"Unity: {Application.unityVersion}");
+        public override void InitializeState()
+        {
+            base.InitializeState();
+            DisableButton();
+            SetText($"Unity: {Application.unityVersion}");
+        }
     }
 }
 

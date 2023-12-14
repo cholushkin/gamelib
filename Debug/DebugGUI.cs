@@ -1,20 +1,22 @@
-﻿using GameLib;
-using UnityEngine;
+﻿using UnityEngine;
 
-public class DebugGUI : MonoBehaviour
+namespace GameLib.Dbg
 {
-    void OnDestroy()
+    public class DebugGUI : MonoBehaviour
     {
-        SaveControlsStates();
-    }
-
-    void SaveControlsStates()
-    {
-        var elements = GetComponentsInChildren<DebugLayoutElement>(true);
-        foreach (var debugLayoutElement in elements)
+        void OnDestroy()
         {
-            debugLayoutElement.SaveToState();
-            debugLayoutElement.SaveState();
+            SaveControlsStates();
+        }
+
+        void SaveControlsStates()
+        {
+            var elements = GetComponentsInChildren<DebugLayoutElement>(true);
+            foreach (var debugLayoutElement in elements)
+            {
+                debugLayoutElement.SaveToState();
+                debugLayoutElement.SaveState();
+            }
         }
     }
 }

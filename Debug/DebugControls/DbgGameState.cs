@@ -1,17 +1,21 @@
-﻿public class DbgGameState : Pane
+﻿namespace GameLib.Dbg
 {
-    public AppStateManager AppStateManager;
-
-
-    public override void InitializeState()
+    public class DbgGameState : Pane
     {
-        base.InitializeState();
-        DisableButton();
-    }
+        public AppStateManager AppStateManager;
 
-    public override void Update()
-    {
-        var gameStatesStr = $"<b>[GameState]</b>\ncur:{AppStateManager.GetCurrentState()?.GetName()}\nprev:{AppStateManager.GetPreviousState()?.GetName()}";
-        SetText(gameStatesStr);
+
+        public override void InitializeState()
+        {
+            base.InitializeState();
+            DisableButton();
+        }
+
+        public override void Update()
+        {
+            var gameStatesStr =
+                $"<b>[GameState]</b>\ncur:{AppStateManager.GetCurrentState()?.GetName()}\nprev:{AppStateManager.GetPreviousState()?.GetName()}";
+            SetText(gameStatesStr);
+        }
     }
 }

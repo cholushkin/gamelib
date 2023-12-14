@@ -1,9 +1,12 @@
 ﻿using GameLib;
 
-public class Empty : DebugLayoutElement
+namespace GameLib.Dbg
 {
-    public override string GetPrefabBasedOnName()
+    public class Empty : DebugLayoutElement
     {
-        return "Empty";
+        public override string GetPrefabBasedOnName()
+        {
+            return "Empty";
+        }
     }
 }
