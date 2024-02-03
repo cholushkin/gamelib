@@ -9,6 +9,7 @@ using Object = UnityEngine.Object;
 
 namespace GameLib.Log
 {
+    // todo: https://learn.microsoft.com/en-us/dotnet/core/compatibility/core-libraries/6.0/debug-assert-conditional-evaluation
     [Serializable]
     public class LogChecker
     {
@@ -23,6 +24,7 @@ namespace GameLib.Log
         [Header("Filtering")]
         public Level CheckerLevel = Level.Disabled;
         public string Subsystem;
+        public bool Gizmos;
 
         [Header("Decorating")]
         public Object Context;
@@ -90,10 +92,10 @@ namespace GameLib.Log
         // Print
         [Conditional("GAMELIB_LOG")]
         [HideInCallstack]
-        public static void Print(this LogChecker logChecker, LogChecker.Level level, string message = null )
+        public static void Print(this LogChecker logChecker, LogChecker.Level level, string message = null, Object overrideContext = null )
         {
             if (logChecker.IsAtLeast(level) && logChecker.IsFilterPass())
-                Debug.Log(DecorateMessage(message, logChecker), logChecker.Context);
+                Debug.Log(DecorateMessage(message, logChecker), overrideContext == null ? logChecker.Context : overrideContext);
         }
 
         [Conditional("GAMELIB_LOG")]
