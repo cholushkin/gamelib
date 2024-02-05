@@ -7,9 +7,12 @@ using UnityEngine;
 using Debug = UnityEngine.Debug;
 using Object = UnityEngine.Object;
 
+// todo: write a custom string interpolation handler
+// https://learn.microsoft.com/en-us/dotnet/csharp/whats-new/tutorials/interpolated-string-handler
+
 namespace GameLib.Log
 {
-    // todo: https://learn.microsoft.com/en-us/dotnet/core/compatibility/core-libraries/6.0/debug-assert-conditional-evaluation
+    
     [Serializable]
     public class LogChecker
     {
