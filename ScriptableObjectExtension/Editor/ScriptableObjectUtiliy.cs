@@ -132,9 +132,6 @@ public static class ScriptableObjectUtility
     
     public static T[] GetInstancesOfScriptableObject<T>() where T : ScriptableObject
     {
-        Stopwatch stopwatch = new Stopwatch();
-        stopwatch.Start();
-
         var typeName = typeof(T).Name;
         T[] instances;
 
@@ -149,11 +146,7 @@ public static class ScriptableObjectUtility
                 {
                     // check instances
                     if (instances.All(instance => instance != null))
-                    {
-                        stopwatch.Stop();
-                        Debug.Log($"GetInstancesOfScriptableObject<{typeName}>[{instances.Length}] elapsed Time is {stopwatch.ElapsedMilliseconds} ms");
                         return instances;
-                    }
 
                     _cachedArraysOfInstances = new Dictionary<string, object[]>();
                 }
@@ -164,8 +157,6 @@ public static class ScriptableObjectUtility
         if (guids.Length == 0)
         {
             Debug.LogWarning($"Can't find instance of {typeName}");
-            stopwatch.Stop();
-            Debug.Log($"GetInstancesOfScriptableObject<{typeName}>[0] elapsed Time is {stopwatch.ElapsedMilliseconds} ms");
             return null;
         }
         instances = new T[guids.Length];
@@ -178,8 +169,6 @@ public static class ScriptableObjectUtility
         if(_cachingEnabled)
             _cachedArraysOfInstances[typeName] = instances;
 
-        stopwatch.Stop();
-        Debug.Log($"GetInstancesOfScriptableObject<{typeName}>[[{instances.Length}] elapsed Time is {stopwatch.ElapsedMilliseconds} ms");
         return instances;
     }
 
