@@ -1,1 +1,0 @@
-Algrorythms and design patterns

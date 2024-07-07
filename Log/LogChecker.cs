@@ -12,7 +12,6 @@ using Object = UnityEngine.Object;
 
 namespace GameLib.Log
 {
-    
     [Serializable]
     public class LogChecker
     {
