@@ -24,6 +24,7 @@ namespace GameLib.Dbg
         }
     }
 
+    // todo: move to separate helper file
     public static class AspectRatioHelper
     {
         public class EventScreenOrientationChanged // Spawned when screen orientation change detected

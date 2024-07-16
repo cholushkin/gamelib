@@ -3,6 +3,7 @@ using UnityEngine;
 
 namespace GameLib
 {
+    // todo: move to boost
     public class SideReveal : MonoBehaviour
     {
         public bool PlayOnAwake;
