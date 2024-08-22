@@ -1,10 +1,13 @@
 {
-    "name": "GameLib",
+    "name": "GameLib.Editor",
     "rootNamespace": "",
     "references": [
-        "GUID:22cff8bc47f37894fa83fee9391b0b6f"
+        "GUID:e374adf4b521a744cbe1f65144dbb05a",
+        "GUID:343deaaf83e0cee4ca978e7df0b80d21"
     ],
-    "includePlatforms": [],
+    "includePlatforms": [
+        "Editor"
+    ],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,

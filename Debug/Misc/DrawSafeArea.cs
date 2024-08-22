@@ -1,4 +1,4 @@
-using UnityEditor;
+//using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -41,7 +41,7 @@ public class DrawSafeArea : MonoBehaviour
         if (!string.IsNullOrEmpty(combinedInfo))
         {
             Gizmos.color = Color.white;
-            Handles.Label(transform.position, combinedInfo);
+            //Handles.Label(transform.position, combinedInfo);
         }
 
         DrawSafeAreaImpl();
