@@ -51,7 +51,8 @@ namespace GameLib
                 };
                 _stateLookup.Add(mapping.State, mapping);
             }
-            CurrentState = _stateLookup[defaultState];
+            
+            GoTo(defaultState);
         }
 
         public void Update()

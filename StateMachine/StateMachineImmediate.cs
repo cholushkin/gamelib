@@ -55,6 +55,7 @@ public class StateMachineImmediate<T> where T : struct, IConvertible, IComparabl
         }
 
         CurrentState = _stateLookup[defaultState];
+        OnEnter(CurrentState);
     }
 
     
