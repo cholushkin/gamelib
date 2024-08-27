@@ -1,5 +1,7 @@
-﻿using DG.Tweening;
+﻿using System;
+using DG.Tweening;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 public class HoveringGlobal : MonoBehaviour
 {
@@ -44,5 +46,13 @@ public class HoveringGlobal : MonoBehaviour
     {
         if (StartOnAwake)
             StartHovering();
+    }
+
+    private void OnDestroy()
+    {
+        if (transform != null)
+        {
+            DOTween.Kill(transform);
+        }
     }
 }
