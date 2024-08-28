@@ -73,7 +73,7 @@ namespace GameLib
             _gotoQueue.Enqueue(targetState);
         }
 
-        public bool GoToIfNotInState(T newPlayerState)
+        public bool GoToIfNotInState(T newPlayerState) // todo: make it as a flag for goto
         {
             var targetState = _stateLookup[newPlayerState];
             Assert.IsNotNull(targetState);

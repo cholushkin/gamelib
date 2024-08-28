@@ -20,6 +20,8 @@ namespace GameLib.Random
 		private static int _nextRndSeedPointer = -1;
 		private const int MaxSeed = 1000000;
 
+		public static readonly IPseudoRandomNumberGenerator Rnd = CreateRandomNumberGenerator();
+
 		public static IPseudoRandomNumberGenerator CreateRandomNumberGenerator(long seed = -1, PseudoRandomNumberGenerator prng = PseudoRandomNumberGenerator.LinearCongruential)
 		{
 			if (seed == -1)
