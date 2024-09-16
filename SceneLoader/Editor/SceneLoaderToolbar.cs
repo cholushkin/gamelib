@@ -46,7 +46,7 @@ namespace Gamelib
 			string[] guids = AssetDatabase.FindAssets("t:SceneLoaderSeqConfig");
 			if (guids == null || guids.Length != 1)
 			{
-				Debug.LogError($"There must be SceneLoaderSeqConfig for the project which starts with 'Main'");
+				Debug.LogWarning($"There must be SceneLoaderSeqConfig for the project with the name starting from 'Main'");
 				return;
 			}
 
