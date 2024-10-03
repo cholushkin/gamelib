@@ -14,6 +14,8 @@ namespace Gamelib
     public class SceneLoader : MonoBehaviour
     {
         public const string SceneLoaderSequenceOverrideKeyName = "SceneLoaderSequenceOverride";
+        
+        [Tooltip("Default starting sequence, usually release sequence. Make sure that the first scene in the build list is the scene containing main SceneLoader")]
         public string LoadingSequence;
         public SceneLoaderSeqConfig SeqConfig;
 

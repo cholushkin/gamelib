@@ -166,13 +166,7 @@ namespace Gamelib
 		internal static void RunStartScene()
 		{
 			var startingScenePath = SceneUtility.GetScenePathByBuildIndex(0);
-			var mainScene = Path.GetFileName(startingScenePath);
-			if (mainScene != "Main.unity")
-			{
-				Debug.LogError($"Main.unity should be the first scene in the build settings");
-				return;
-			}
-
+			
 			// Note:  Unity 2023.1.4f1 bug ?
 			// Remove scene from hierarchy if it's game starting scene and it has "not loaded" state in hierarchy,
 			// otherwise Unity Player won't start - some loaded scene will stuck with 'is unloading' status in hierarchy.
