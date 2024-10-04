@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Linq;
+using GameLib.Alg;
 using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.SceneManagement;
@@ -11,7 +12,7 @@ using UnityEditor.SceneManagement;
 
 namespace Gamelib
 {
-    public class SceneLoader : MonoBehaviour
+    public class SceneLoader : Singleton<SceneLoader>
     {
         public const string SceneLoaderSequenceOverrideKeyName = "SceneLoaderSequenceOverride";
         
@@ -48,8 +49,9 @@ namespace Gamelib
 
         #endregion
 
-        void Awake()
+        protected override void Awake()
         {
+            base.Awake();
 #if UNITY_EDITOR
             // Override loading sequence from dependencies config
             var seqName = SessionState.GetString(SceneLoaderSequenceOverrideKeyName, null);
@@ -112,7 +114,10 @@ namespace Gamelib
             Assert.IsNotNull(sequence);
             var seq = SeqConfig.Sequences.FirstOrDefault(x => x.Name == sequence);
             if (seq == null)
+            {
+                Debug.LogError($"Sequence is not found: {sequence}");
                 yield break;
+            }
 
             foreach (var additiveScene in seq.Additives)
                 yield return LoadScene(additiveScene, seq.ActiveScene == additiveScene);
