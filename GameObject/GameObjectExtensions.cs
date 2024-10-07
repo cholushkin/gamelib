@@ -66,19 +66,67 @@ namespace GameLib.Alg
                 Object.Destroy(sphere, duration);
         }
 
-        public static Transform FindNestedChild(this Transform parent, string name)
+        // Depth-First Pre-Order Traversal (similar to your TreeNode example)
+        public static IEnumerable<Transform> TraverseDepthFirstPreOrder(this Transform transform)
+        {
+            Stack<Transform> stack = new Stack<Transform>();
+            stack.Push(transform);
+
+            while (stack.Count > 0)
+            {
+                var current = stack.Pop();
+                yield return current;
+
+                // Push children in reverse order to process left-to-right
+                for (int i = current.childCount - 1; i >= 0; i--)
+                {
+                    stack.Push(current.GetChild(i));
+                }
+            }
+        }
+
+        // Depth-First Post-Order Traversal
+        public static IEnumerable<Transform> TraverseDepthFirstPostOrder(this Transform transform)
+        {
+            Stack<Transform> stack = new Stack<Transform>();
+            Stack<Transform> postOrderStack = new Stack<Transform>(); // to store post-order traversal
+            stack.Push(transform);
+
+            while (stack.Count > 0)
+            {
+                var current = stack.Pop();
+                postOrderStack.Push(current); // Push to post-order stack
+
+                // Push children directly to the main stack
+                foreach (Transform child in current)
+                {
+                    stack.Push(child);
+                }
+            }
+
+            // Yield in post-order from the second stack
+            while (postOrderStack.Count > 0)
+            {
+                yield return postOrderStack.Pop();
+            }
+        }
+
+        // Breadth-First Traversal (Level Order)
+        public static IEnumerable<Transform> TraverseBreadthFirst(this Transform transform)
         {
             Queue<Transform> queue = new Queue<Transform>();
-            queue.Enqueue(parent);
+            queue.Enqueue(transform);
+
             while (queue.Count > 0)
             {
-                var c = queue.Dequeue();
-                if (c.name == name)
-                    return c;
-                foreach (Transform t in c)
-                    queue.Enqueue(t);
+                var current = queue.Dequeue();
+                yield return current;
+
+                foreach (Transform child in current)
+                {
+                    queue.Enqueue(child);
+                }
             }
-            return null;
         }
 
         public static IEnumerable<Transform> Children(this Transform t)
