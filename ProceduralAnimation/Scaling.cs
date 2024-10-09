@@ -7,11 +7,18 @@ public class Scaling : MonoBehaviour
     public float LoopDuration;
     public bool RandomizeInitialScale;
     public bool IndependentUpdate;
+    public bool PlayOnAwake;
     public Ease Ease;
     public int Loops = -1;
     public AnimationCurve AnimCurve;
 
     void Awake()
+    {
+        if (PlayOnAwake)
+            StartScaling();
+    }
+
+    public void StartScaling()
     {
         var tween = transform
             .DOScale(Scale, LoopDuration)
