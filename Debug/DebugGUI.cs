@@ -4,6 +4,19 @@ namespace GameLib.Dbg
 {
     public class DebugGUI : MonoBehaviour
     {
+        
+        
+        #region API
+        // save state 
+        // load state
+        // showOverlay (index/name, additive/switch
+        // hideOverlay (index/name)
+        // hideOverlayAll
+        // showControl(controlFullName)
+        // hideControl(controlFullName)
+        // 
+        
+        #endregion
         void OnDestroy()
         {
             SaveControlsStates();

@@ -89,6 +89,7 @@ namespace GameLib.Log
 
     public static class LogHelpers
     {
+        public static LogChecker Log = new LogChecker(LogChecker.Level.Normal);
         public delegate string PostponedStringEvaluationDelegate();
 
         // Print
