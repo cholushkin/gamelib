@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Events;
+using Gamelib;
 using GameLib.Log;
 using UnityEngine;
 using UnityEngine.Assertions;
@@ -8,7 +10,7 @@ using UnityEngine.Assertions;
 namespace GameGUI
 {
     [ScriptExecutionOrder(-8)]
-    public class SimpleGUI : MonoBehaviour
+    public class SimpleGUI : MonoBehaviour, IHandle<DebugWidgetSimpleGUI.EventRetrieveSimpleGUIInstance>
     {
         public interface IInitialize
         {
@@ -34,6 +36,8 @@ namespace GameGUI
             // disable screens 
             foreach (Transform child in ScreensRoot)
                 child.gameObject.SetActive(false);
+            
+            GlobalEventAggregator.EventAggregator.Subscribe( this);
         }
 
         void Start()
@@ -213,6 +217,11 @@ namespace GameGUI
             foreach (var guiScreenBase in _screenStack)
                 str += $"*{guiScreenBase.name}, modal:{guiScreenBase.IsModal}, input:{guiScreenBase.IsInputEnabled}, inTransaction:{guiScreenBase.IsInTransaction}, inputEnabledRefs:{guiScreenBase.GetRefsCount()}\n";
             return str;
+        }
+
+        public void Handle(DebugWidgetSimpleGUI.EventRetrieveSimpleGUIInstance message)
+        {
+            message.Instance = this;
         }
     }
 }

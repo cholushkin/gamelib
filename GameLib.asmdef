@@ -3,7 +3,8 @@
     "rootNamespace": "",
     "references": [
         "DOTween.Modules",
-        "NaughtyAttributes.Core"
+        "NaughtyAttributes.Core",
+        "Unity.TextMeshPro"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
