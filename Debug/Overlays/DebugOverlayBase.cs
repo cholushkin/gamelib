@@ -1,43 +1,49 @@
-using System.Linq;
-using NaughtyAttributes;
+using uconsole;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace Gamelib
 {
     public class DebugOverlayBase : TrackableMonoBehaviour<DebugOverlayBase>
     {
-        [Required] public Canvas Canvas;
-        [Required] public CanvasGroup CanvasGroup;
-        [Required] public CanvasScaler CanvasScaler;
         public int GroupdIndex;
+        public Transform Content;
+        public OverlayHandlerBase OverlayHandler;
 
-        public void Show()
+        public virtual void Show()
+        {
+            ProccessGroupHide();
+            
+            if(Content)
+                Content.gameObject.SetActive(true);
+            
+            if(OverlayHandler)
+                OverlayHandler.OnOverlayToggle(true);
+        }
+
+        public virtual void Hide()
+        {
+            if(Content)
+                Content.gameObject.SetActive(false);
+            
+            if(OverlayHandler)
+                OverlayHandler.OnOverlayToggle(false);
+        }
+
+        public virtual bool IsShown()
+        {
+            return Content.gameObject.activeSelf;
+        }
+
+        public virtual void SetScale(float overlayScale)
+        {
+            
+        }
+
+        protected void ProccessGroupHide()
         {
             foreach (var overlay in GetAllInstances())
                 if(overlay.GroupdIndex == GroupdIndex)
                     overlay.Hide();
-            
-            CanvasGroup.alpha = 1; // Fully visible
-            CanvasGroup.interactable = true;
-            CanvasGroup.blocksRaycasts = true;
-        }
-
-        public void Hide()
-        {
-            CanvasGroup.alpha = 0; // Fully invisible
-            CanvasGroup.interactable = false;
-            CanvasGroup.blocksRaycasts = false;
-        }
-
-        public bool IsShown()
-        {
-            return CanvasGroup.alpha >= 0.9f;
-        }
-
-        public void SetScale(float overlayScale)
-        {
-            CanvasScaler.scaleFactor = overlayScale;
         }
     }
 }

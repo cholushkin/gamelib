@@ -4,7 +4,8 @@
     "references": [
         "DOTween.Modules",
         "NaughtyAttributes.Core",
-        "Unity.TextMeshPro"
+        "Unity.TextMeshPro",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

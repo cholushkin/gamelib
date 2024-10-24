@@ -15,7 +15,7 @@ namespace uconsole
      * Developers can replace this default handler with their own implementation
      * to handle specific game logic when the overlay is toggled.
      */
-    public class DefaultOverlayHandler : MonoBehaviour
+    public class OverlayHandlerBase : MonoBehaviour
     {
         public class EventOverlayToggle
         {

@@ -98,7 +98,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6716937471150557562}
-  - component: {fileID: 4463176479424960815}
+  - component: {fileID: 1530312065378527601}
   - component: {fileID: 1551546620711883772}
   - component: {fileID: 7325440542535599463}
   - component: {fileID: 4995344556896603789}
@@ -132,7 +132,7 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &4463176479424960815
+--- !u!114 &1530312065378527601
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -141,13 +141,15 @@ MonoBehaviour:
   m_GameObject: {fileID: 8093220232722217679}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 288d929266bf06448beedd6be0a77370, type: 3}
+  m_Script: {fileID: 11500000, guid: 59e1e00c289b30b44baa5a243a98ada0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  GroupdIndex: 0
+  Content: {fileID: 0}
+  OverlayHandler: {fileID: 0}
   Canvas: {fileID: 4995344556896603789}
   CanvasGroup: {fileID: 7316709599940529300}
   CanvasScaler: {fileID: 6345345997987867531}
-  GroupdIndex: 0
 --- !u!114 &1551546620711883772
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -160,7 +162,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4b5b475f27e68f24d96df3ef2ae9de1b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Overlay: {fileID: 4463176479424960815}
+  Overlay: {fileID: 1530312065378527601}
   KillOnStart: 0
   ShowOnStart: 0
 --- !u!114 &7325440542535599463
@@ -175,8 +177,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2614d68413cd84a41b70bf668eac22fd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Overlay: {fileID: 4463176479424960815}
-  Keys: 1b010000
+  Overlay: {fileID: 1530312065378527601}
+  Keys: 5f000000
 --- !u!223 &4995344556896603789
 Canvas:
   m_ObjectHideFlags: 0
