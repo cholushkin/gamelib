@@ -241,20 +241,95 @@ namespace GameLib.Random
 
 		public static int SpawnEvent(this IPseudoRandomNumberGenerator rng, float[] probs)
 		{
-			// get prob line
-			float sum = 0;
-			for (int i = 0; i < probs.Length; ++i)
-				sum += probs[i];
+			if (probs == null || probs.Length == 0)
+				return -1;  // Return -1 for invalid input
+			
+			// Calculate total probability sum
+			float totalProbability = 0;
+			foreach (float prob in probs)
+				totalProbability += prob;
+			
+			if (totalProbability <= 0)
+				return -1;  // Return -1 if all probabilities are zero or negative
 
-			// select val
-			float point = rng.ValueFloat() * sum;
+			// Generate a random point in the range [0, totalProbability)
+			float randomValue = rng.ValueFloat() * totalProbability;
 
-			// return event
+			// Find the event corresponding to the random value
 			for (int i = 0; i < probs.Length; ++i)
-				if ((point -= probs[i]) < 0)
+			{
+				randomValue -= probs[i];
+				if (randomValue < 0)
 					return i;
+			}
 
 			return -1;
+		}
+		
+		
+		/* Example:
+		 * List<EventOption> options = new List<EventOption>
+		 * {
+		 *		new EventOption { EventName = "EventA", Probability = 0.2f },
+		 *		new EventOption { EventName = "EventB", Probability = 0.3f },
+		 *		new EventOption { EventName = "EventC", Probability = 0.5f }
+		 * };
+		 * int selectedEventIndex = rng.SpawnEvent(options, option => option.Probability);
+		 */
+		public static int SpawnEvent<T>(this IPseudoRandomNumberGenerator rng, IEnumerable<T> items, Func<T, float> probabilitySelector)
+		{
+			// Calculate total probability sum
+			float totalProbability = items.Sum(probabilitySelector);
+
+			if (totalProbability <= 0)
+				return -1;  // Return -1 if all probabilities are zero or negative
+
+			// Generate a random point in the range [0, totalProbability)
+			float randomValue = rng.ValueFloat() * totalProbability;
+
+			// Iterate through items and select based on the cumulative probability
+			int index = 0;
+			foreach (var item in items)
+			{
+				randomValue -= probabilitySelector(item);
+				if (randomValue < 0)
+					return index;
+				index++;
+			}
+
+			return -1;  // In case of rounding issues or unexpected input
+		}
+		
+		// Example:
+		// int selectedEventIndex;
+		// EventOption selectedEvent = rng.SpawnEvent(options, option => option.Probability, out selectedEventIndex);
+		// EventOption another = rng.SpawnEvent(options, option => option.Probability, out _);
+		public static T SpawnEvent<T>(this IPseudoRandomNumberGenerator rng, IEnumerable<T> items, Func<T, float> probabilitySelector, out int index)
+		{
+			// Calculate total probability sum
+			float totalProbability = items.Sum(probabilitySelector);
+
+			if (totalProbability <= 0)
+			{
+				index = -1; // Optional index in case of failure
+				return default;  // Return the default value for type T (null for reference types, zero for value types)
+			}
+
+			// Generate a random point in the range [0, totalProbability)
+			float randomValue = rng.ValueFloat() * totalProbability;
+
+			// Iterate through items and select based on the cumulative probability
+			index = 0; // Initialize index
+			foreach (var item in items)
+			{
+				randomValue -= probabilitySelector(item);
+				if (randomValue < 0)
+					return item; // Return the selected item
+				index++;
+			}
+
+			index = -1; // In case of rounding issues or unexpected input
+			return default; // Return the default value for type T
 		}
 
 		public static bool YesNo(this IPseudoRandomNumberGenerator rng, SimpleFunction function = null)
