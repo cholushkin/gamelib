@@ -65,6 +65,16 @@ namespace GameLib.Alg
             if(duration > 0f)
                 Object.Destroy(sphere, duration);
         }
+        
+        public static void CreateDebugSphere(Vector3 pos, float radius = 0.5f, float duration = -1f)
+        {
+            GameObject sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            sphere.RemoveComponent<SphereCollider>();
+            sphere.transform.localScale = new Vector3(radius,radius,radius);
+            sphere.transform.position = pos;
+            if(duration > 0f)
+                Object.Destroy(sphere, duration);
+        }
 
         // Depth-First Pre-Order Traversal (similar to your TreeNode example)
         public static IEnumerable<Transform> TraverseDepthFirstPreOrder(this Transform transform)
