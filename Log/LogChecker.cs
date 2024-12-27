@@ -3,6 +3,7 @@ using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
+using NaughtyAttributes;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 using Object = UnityEngine.Object;
@@ -23,13 +24,13 @@ namespace GameLib.Log
             Verbose = 3
         }
 
-        [Header("Filtering")]
-        public Level CheckerLevel = Level.Disabled;
+        [Header("Filtering")] public Level CheckerLevel = Level.Disabled;
         public string Subsystem;
         public bool Gizmos;
 
-        [Header("Decorating")]
-        public Object Context;
+        public bool LocalLog;
+
+        [Header("Decorating")] public Object Context;
         public bool AddSubsystem;
         public bool AddContextPath;
         public bool AddContextCoordinate;
@@ -37,6 +38,8 @@ namespace GameLib.Log
         public bool AddContextSiblingIndex;
         public bool AddComponentName;
 
+        // todo: write debug widget for this
+        [TextArea(8, 8)] public string LocalLogBuffer;
 
         public LogChecker(Level level, string subsystem = null, Object context = null)
         {
@@ -90,30 +93,47 @@ namespace GameLib.Log
     public static class LogHelpers
     {
         public static LogChecker Log = new LogChecker(LogChecker.Level.Normal);
+
         public delegate string PostponedStringEvaluationDelegate();
 
         // Print
         [Conditional("GAMELIB_LOG")]
         [HideInCallstack]
-        public static void Print(this LogChecker logChecker, LogChecker.Level level, string message = null, Object overrideContext = null )
+        public static void Print(this LogChecker logChecker, LogChecker.Level level, string message = null,
+            Object overrideContext = null)
         {
             if (logChecker.IsAtLeast(level) && logChecker.IsFilterPass())
-                Debug.Log(DecorateMessage(message, logChecker), overrideContext == null ? logChecker.Context : overrideContext);
+            {
+                string messagePrepared = "";
+                Debug.Log(messagePrepared = DecorateMessage(message, logChecker),
+                    overrideContext == null ? logChecker.Context : overrideContext);
+                if (logChecker.LocalLog)
+                    logChecker.LocalLogBuffer += messagePrepared + "\n";
+            }
         }
 
         [Conditional("GAMELIB_LOG")]
         [HideInCallstack]
         public static void Print(this LogChecker logChecker, string message = null)
         {
-            Debug.Log(DecorateMessage(message, logChecker));
+            var messagePrepared = DecorateMessage(message, logChecker);
+            Debug.Log(messagePrepared);
+            if (logChecker.LocalLog)
+                logChecker.LocalLogBuffer += messagePrepared + "\n";
         }
 
         [Conditional("GAMELIB_LOG")]
         [HideInCallstack]
-        public static void Print(this LogChecker logChecker, LogChecker.Level level, PostponedStringEvaluationDelegate message )
+        public static void Print(this LogChecker logChecker, LogChecker.Level level,
+            PostponedStringEvaluationDelegate message)
         {
             if (logChecker.IsAtLeast(level) && logChecker.IsFilterPass())
-                Debug.Log(DecorateMessage(message == null ? "" : message(), logChecker), logChecker.Context);
+            {
+                var messagePrepared = DecorateMessage(message == null ? "" : message(), logChecker);
+                Debug.Log(messagePrepared, logChecker.Context);
+                if (logChecker.LocalLog)
+                    logChecker.LocalLogBuffer += messagePrepared + "\n";
+            }
         }
 
         // PrintError
@@ -122,22 +142,36 @@ namespace GameLib.Log
         public static void PrintError(this LogChecker logChecker, LogChecker.Level level, string message = null)
         {
             if ((logChecker.IsAtLeast(level) && logChecker.IsFilterPass()))
-                Debug.LogError(DecorateMessage(message, logChecker), logChecker.Context);
+            {
+                var messagePrepared = DecorateMessage(message, logChecker);
+                Debug.LogError(messagePrepared, logChecker.Context);
+                if (logChecker.LocalLog)
+                    logChecker.LocalLogBuffer += $"[E] {messagePrepared}\n";
+            }
         }
 
         [Conditional("GAMELIB_LOG")]
         [HideInCallstack]
         public static void PrintError(this LogChecker logChecker, string message = null)
         {
-            Debug.LogError(DecorateMessage(message, logChecker));
+            var messagePrepared = DecorateMessage(message, logChecker);
+            Debug.LogError(messagePrepared);
+            if (logChecker.LocalLog)
+                logChecker.LocalLogBuffer += $"[E] {messagePrepared}\n";
         }
 
         [Conditional("GAMELIB_LOG")]
         [HideInCallstack]
-        public static void PrintError(this LogChecker logChecker, LogChecker.Level level, PostponedStringEvaluationDelegate message)
+        public static void PrintError(this LogChecker logChecker, LogChecker.Level level,
+            PostponedStringEvaluationDelegate message)
         {
             if (logChecker.IsAtLeast(level) && logChecker.IsFilterPass())
-                Debug.LogError(DecorateMessage(message == null ? "" : message(), logChecker), logChecker.Context);
+            {
+                var messagePrepared = DecorateMessage(message == null ? "" : message(), logChecker);
+                Debug.LogError(messagePrepared, logChecker.Context);
+                if (logChecker.LocalLog)
+                    logChecker.LocalLogBuffer += $"[E] {messagePrepared}\n";
+            }
         }
 
         // PrintWarning
@@ -146,22 +180,36 @@ namespace GameLib.Log
         public static void PrintWarning(this LogChecker logChecker, LogChecker.Level level, string message = null)
         {
             if (logChecker.IsAtLeast(level) && logChecker.IsFilterPass())
-                Debug.LogWarning(DecorateMessage(message, logChecker), logChecker.Context);
+            {
+                var messagePrepared = DecorateMessage(message, logChecker);
+                Debug.LogWarning(messagePrepared, logChecker.Context);
+                if (logChecker.LocalLog)
+                    logChecker.LocalLogBuffer += $"[W] {messagePrepared}\n";
+            }
         }
 
         [Conditional("GAMELIB_LOG")]
         [HideInCallstack]
         public static void PrintWarning(this LogChecker logChecker, string message = null)
         {
-            Debug.LogWarning(DecorateMessage(message, logChecker));
+            var messagePrepared = DecorateMessage(message, logChecker);
+            Debug.LogWarning(messagePrepared);
+            if (logChecker.LocalLog)
+                logChecker.LocalLogBuffer += $"[W] {messagePrepared}\n";
         }
 
         [Conditional("GAMELIB_LOG")]
         [HideInCallstack]
-        public static void PrintWarning(this LogChecker logChecker, LogChecker.Level level, PostponedStringEvaluationDelegate message)
+        public static void PrintWarning(this LogChecker logChecker, LogChecker.Level level,
+            PostponedStringEvaluationDelegate message)
         {
             if (logChecker.IsAtLeast(level) && logChecker.IsFilterPass())
-                Debug.LogWarning(DecorateMessage(message == null ? "" : message(), logChecker), logChecker.Context);
+            {
+                var messagePrepared = DecorateMessage(message == null ? "" : message(), logChecker);
+                Debug.LogWarning(messagePrepared, logChecker.Context);
+                if (logChecker.LocalLog)
+                    logChecker.LocalLogBuffer += $"[W] {messagePrepared}\n";
+            }
         }
 
         private static string DecorateMessage(string text, LogChecker logChecker)
@@ -204,6 +252,7 @@ namespace GameLib.Log
                 {
                     stringBuilder.Append(logChecker.Context.name);
                 }
+
                 if (!string.IsNullOrEmpty(text))
                     stringBuilder.Append(": ");
             }
