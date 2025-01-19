@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 using UnityEngine;
@@ -28,6 +29,16 @@ namespace GameLib.Alg
             int childCount = transform.childCount;
             for (int i = 0; i < childCount; ++i)
                 transform.GetChild(0).parent = dstParent;
+        }
+
+        public static Transform FirstChildNameStartsWith(this Transform transform, string prefix, bool recursive = false)
+        {
+            if (string.IsNullOrEmpty(prefix))
+                return null;
+            
+            if (recursive)
+                return transform.TraverseDepthFirstPreOrder().FirstOrDefault(child => child.name.StartsWith(prefix, StringComparison.Ordinal));
+            return transform.Children().FirstOrDefault(child => child.name.StartsWith(prefix, StringComparison.Ordinal));
         }
 
         public static string GetDebugName(this Transform transform, bool addCoordinate = false, bool addHash = false, bool addSiblingIndex = false, int nesting = 10)
@@ -76,7 +87,7 @@ namespace GameLib.Alg
                 Object.Destroy(sphere, duration);
         }
 
-        // Depth-First Pre-Order Traversal (similar to your TreeNode example)
+        // Depth-First Pre-Order Traversal
         public static IEnumerable<Transform> TraverseDepthFirstPreOrder(this Transform transform)
         {
             Stack<Transform> stack = new Stack<Transform>();
