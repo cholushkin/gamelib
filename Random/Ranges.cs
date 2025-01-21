@@ -1,150 +1,82 @@
-﻿using System;
-using UnityEngine;
+﻿using Unity.Mathematics;
 
 namespace GameLib.Random
 {
-    [Serializable]
-    public class Range
+    /// Provides extension methods for treating int2 as an integer range
+    public static class Int2RangeHelper
     {
-        public static readonly Range Zero = new Range(0f, 0f);
-        public static readonly Range One = new Range(1f, 1f);
-        public static readonly Range PositiveInfinity = new Range(float.PositiveInfinity, float.PositiveInfinity);
-        public static readonly Range NegativeInfinity = new Range(float.NegativeInfinity, float.NegativeInfinity);
-        public static readonly Range InfiniteRange = new Range(float.NegativeInfinity, float.PositiveInfinity);
+        /// Gets the starting value (x) of the range
+        public static int From(this int2 v) => v.x;
 
-        public float From;
-        public float To;
+        /// Gets the ending value (y) of the range
+        public static int To(this int2 v) => v.y;
 
+        /// Returns an int2 representing the range [0, 0]
+        public static int2 Zero(this int2 v) => int2.zero;
 
-        public Range(float from, float to)
-        {
-            From = from;
-            To = to;
-        }
+        /// Returns an int2 representing the range [1, 1]
+        public static int2 One(this int2 v) => _int2One;
 
-        public virtual bool IsIn(float val)
-        {
-            if (val < From)
-                return false;
-            if (val > To)
-                return false;
-            return true;
-        }
+        /// Returns an int2 with both values set to int.MaxValue
+        public static int2 PositiveInfinity(this int2 v) => _int2PositiveInfinity;
 
-        public override string ToString()
-        {
-            return string.Format("<{0} : {1}>", From, To);
-        }
+        /// Returns an int2 with both values set to int.MinValue
+        public static int2 NegativeInfinity(this int2 v) => _int2NegativeInfinity;
 
-        public bool IsZero()
-        {
-            return Mathf.Approximately(From, 0f) && Mathf.Approximately(To, 0f);
-        }
+        /// Returns an int2 representing the full range [int.MinValue, int.MaxValue]
+        public static int2 Infinity(this int2 v) => _int2InfiniteRange;
+
+        /// Checks if the range contains the given value
+        public static bool Contains(this int2 range, int value) => value >= range.x && value <= range.y;
+        
+        /// Checks if the range completely contains another range.
+        public static bool Contains(this int2 outerRange, int2 innerRange) => innerRange.x >= outerRange.x && innerRange.y <= outerRange.y;
+
+        /// Returns the length of the range (y - x)
+        public static int Length(this int2 range) => range.y - range.x;
+
+        private static readonly int2 _int2One = new(1, 1);
+        private static readonly int2 _int2PositiveInfinity = new(int.MaxValue, int.MaxValue);
+        private static readonly int2 _int2NegativeInfinity = new(int.MinValue, int.MinValue);
+        private static readonly int2 _int2InfiniteRange = new(int.MinValue, int.MaxValue);
     }
 
-    [Serializable]
-    public class RangeInt
+    /// Provides extension methods for treating float2 as a float range
+    public static class Float2RangeHelper
     {
-        public static readonly RangeInt Zero = new RangeInt(0, 0);
-        public static readonly RangeInt One = new RangeInt(1, 1);
-        public static readonly RangeInt PositiveInfinity = new RangeInt(int.MaxValue, int.MaxValue);
-        public static readonly RangeInt NegativeInfinity = new RangeInt(int.MinValue, int.MinValue);
-        public static readonly RangeInt InfiniteRange = new RangeInt(int.MinValue, int.MaxValue);
+        /// Gets the starting value (x) of the range
+        public static float From(this float2 v) => v.x;
 
-        public int From;
-        public int To;
+        /// Gets the ending value (y) of the range
+        public static float To(this float2 v) => v.y;
 
-        public RangeInt(int from, int to)
-        {
-            From = from;
-            To = to;
-        }
+        /// Returns a float2 representing the range [0, 0]
+        public static float2 Zero(this float2 v) => float2.zero;
 
-        public virtual bool IsIn(int val)
-        {
-            if (val < From)
-                return false;
-            if (val > To)
-                return false;
-            return true;
-        }
+        /// Returns a float2 representing the range [1, 1]
+        public static float2 One(this float2 v) => _float2One;
 
-        public override string ToString()
-        {
-            return string.Format("<{0} : {1}>", From, To);
-        }
+        /// Returns a float2 with both values set to float.PositiveInfinity
+        public static float2 PositiveInfinity(this float2 v) => _float2PositiveInfinity;
 
-        public bool IsZero()
-        {
-            return From == 0 && To == 0;
-        }
-    }
+        /// Returns a float2 with both values set to float.NegativeInfinity
+        public static float2 NegativeInfinity(this float2 v) => _float2NegativeInfinity;
 
-    [Serializable]
-    public class StrictRange : Range
-    {
-        public enum Restriction // all range types: (), [], [), (]
-        {
-            Included, // [
-            Excluded // (
-        }
+        /// Returns a float2 representing the full range [float.NegativeInfinity, float.PositiveInfinity]
+        public static float2 Infinity(this float2 v) => _float2InfiniteRange;
 
-        public Restriction FromRestriction;
-        public Restriction ToRestriction;
+        /// Checks if the range contains the given value
+        public static bool Contains(this float2 range, float value) => value >= range.x && value <= range.y;
+        
+        /// Checks if the range completely contains another range.
+        public static bool Contains(this float2 outerRange, float2 innerRange) => innerRange.x >= outerRange.x && innerRange.y <= outerRange.y;
 
-        public StrictRange(float from, float to, Restriction fromRestriction = Restriction.Included, Restriction toRestriction = Restriction.Excluded) : base(from, to)
-        {
-            FromRestriction = fromRestriction;
-            ToRestriction = toRestriction;
-        }
+        /// Returns the length of the range (y - x)
+        public static float Length(this float2 range) => range.y - range.x;
 
-        public override bool IsIn(float val)
-        {
-            if (FromRestriction == Restriction.Excluded ? val <= From : val < From)
-                return false;
-            if (ToRestriction == Restriction.Excluded ? val >= To : val > To)
-                return false;
-            return true;
-        }
-
-        public override string ToString()
-        {
-            return
-                $"{(FromRestriction == Restriction.Included ? "[" : "(")}{From} : {To}{(ToRestriction == Restriction.Included ? "]" : ")")}";
-        }
-    }
-
-    [Serializable]
-    public class StrictRangeInt : RangeInt
-    {
-        public enum Restriction // all range types: (), [], [), (]
-        {
-            Included, // [
-            Excluded // (
-        }
-
-        public Restriction FromRestriction;
-        public Restriction ToRestriction;
-
-        public StrictRangeInt(int from, int to, Restriction fromRestriction = Restriction.Included, Restriction toRestriction = Restriction.Excluded) : base(from, to)
-        {
-            FromRestriction = fromRestriction;
-            ToRestriction = toRestriction;
-        }
-
-        public override bool IsIn(int val)
-        {
-            if (FromRestriction == Restriction.Excluded ? val <= From : val < From)
-                return false;
-            if (ToRestriction == Restriction.Excluded ? val >= To : val > To)
-                return false;
-            return true;
-        }
-
-        public override string ToString()
-        {
-            return
-                $"{(FromRestriction == Restriction.Included ? "[" : "(")}{From} : {To}{(ToRestriction == Restriction.Included ? "]" : ")")}";
-        }
+        private static readonly float2 _float2One = new(1f, 1f);
+        private static readonly float2 _float2PositiveInfinity = new(float.PositiveInfinity, float.PositiveInfinity);
+        private static readonly float2 _float2NegativeInfinity = new(float.NegativeInfinity, float.NegativeInfinity);
+        private static readonly float2 _float2InfiniteRange = new(float.NegativeInfinity, float.PositiveInfinity);
     }
 }

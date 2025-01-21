@@ -1,10 +1,10 @@
 ﻿using GameLib.Random;
+using Unity.Mathematics;
 using UnityEngine;
-using UnityEngine.Assertions;
-
 
 namespace GameLib
 {
+    // Enum to represent different types of cyclers
     public enum CyclerType
     {
         CyclerEmpty,
@@ -15,97 +15,83 @@ namespace GameLib
         CyclerYoYo,
     }
 
+    // Factory class to create instances of cyclers based on CyclerType
     public static class CyclerFactory
     {
-        public static CyclerBase CreateCycler(CyclerType cyclerType, long rndSeed, int valAmount)
+        public static CyclerBase CreateCycler(CyclerType cyclerType, Unity.Mathematics.Random random, int valAmount)
         {
-            if (cyclerType == CyclerType.CyclerEmpty)
-                return null;
-            if(cyclerType == CyclerType.CyclerStraight)
-                return new CyclerStraight(valAmount);
-            if (cyclerType == CyclerType.CyclerYoYo)
-                return new CyclerYoYo(valAmount);
-            if (cyclerType == CyclerType.CyclerRand)
-                return new CyclerRand(valAmount, rndSeed);
-            if (cyclerType == CyclerType.CyclerRandFixed)
-                return new CyclerRandFixed(valAmount, rndSeed);
-            if (cyclerType == CyclerType.CyclerRandChaotic)
-                return new CyclerRandChaotic(valAmount, rndSeed);
-            Debug.LogError("Can't create cycler");
-            return null;
+            return cyclerType switch
+            {
+                CyclerType.CyclerEmpty => null,
+                CyclerType.CyclerStraight => new CyclerStraight(valAmount),
+                CyclerType.CyclerYoYo => new CyclerYoYo(valAmount),
+                CyclerType.CyclerRand => new CyclerRand(valAmount, random),
+                CyclerType.CyclerRandFixed => new CyclerRandFixed(valAmount, random),
+                CyclerType.CyclerRandChaotic => new CyclerRandChaotic(valAmount, random),
+                _ => throw new System.ArgumentException("Invalid cycler type")
+            };
         }
     }
 
-
+    // Base class for all cyclers
     public abstract class CyclerBase
     {
-        protected int _elementsAmount; // amount of elements in each cycle
-        protected int _currentIndex; 
+        protected int _elementsAmount; // Total number of elements in a cycle
+        protected int _currentIndex;  // Current index in the cycle
 
         protected CyclerBase(int amount)
         {
             _elementsAmount = amount;
         }
 
-        public virtual int Now()
-        {
-            return _currentIndex;
-        }
+        public virtual int Now() => _currentIndex; // Returns the current element
 
-        public abstract void Step(); // change state
-        public abstract bool IsCycleEnded(); // is it currently on the last step
-        public abstract void Reset(); // reset state
+        public abstract void Step(); // Advances the cycler to the next state
+        public abstract bool IsCycleEnded(); // Checks if the cycle has reached its end
+        public abstract void Reset(); // Resets the cycler to its initial state
     }
 
-    // ----- CyclerStraight:
-    // cycle 0 : 0123
-    // cycle 1 : 0123
-    // cycle 2 : 0123
+    // A cycler that iterates through elements sequentially in a fixed order.
+    // Example:
+    // For 4 elements, the cycles will look like:
+    // Cycle 0: 0, 1, 2, 3
+    // Cycle 1: 0, 1, 2, 3
+    // Cycle 2: 0, 1, 2, 3
     internal class CyclerStraight : CyclerBase
     {
-        public CyclerStraight(int amount) : base(amount)
-        {
-        }
+        public CyclerStraight(int amount) : base(amount) { }
 
         public override void Step()
         {
             _currentIndex = (_currentIndex + 1) % _elementsAmount;
         }
 
-        public override bool IsCycleEnded()
-        {
-            return _currentIndex == _elementsAmount - 1;
-        }
+        public override bool IsCycleEnded() => _currentIndex == _elementsAmount - 1;
 
-        public override void Reset()
-        {
-            _currentIndex = 0;
-        }
+        public override void Reset() => _currentIndex = 0;
     }
 
-
-    // ----- CyclerRand:
-    // cycle 0 : 1032
-    // cycle 1 : 3210
-    // cycle 2 : 1302
+    // A cycler that shuffles elements randomly and iterates through them in the shuffled order.
+    // Example:
+    // For 4 elements and a random instance, the cycles might look like:
+    // Cycle 0: 2, 0, 3, 1
+    // Cycle 1: 3, 1, 0, 2 (new random order for each cycle)    
+    // Cycle 2: 1, 3, 2, 0
     internal class CyclerRand : CyclerBase
     {
         protected int[] _indexes;
-        protected IPseudoRandomNumberGenerator _rnd;
+        protected Unity.Mathematics.Random _rng;
 
-        public CyclerRand(int amount, long seed) : base(amount)
+        public CyclerRand(int amount, Unity.Mathematics.Random rng) : base(amount)
         {
-            _rnd = RandomHelper.CreateRandomNumberGenerator(seed,RandomHelper.PseudoRandomNumberGenerator.LinearCongruential);
+            _rng = rng;
             _indexes = new int[amount];
             for (int i = 0; i < amount; i++)
                 _indexes[i] = i;
             Shuffle();
         }
 
-        public override int Now()
-        {
-            return _indexes[_currentIndex];
-        }
+        public override int Now() => _indexes[_currentIndex];
 
         public override void Step()
         {
@@ -114,10 +100,7 @@ namespace GameLib
             _currentIndex = (_currentIndex + 1) % _elementsAmount;
         }
 
-        public override bool IsCycleEnded()
-        {
-            return _currentIndex == _elementsAmount - 1;
-        }
+        public override bool IsCycleEnded() => _currentIndex == _elementsAmount - 1;
 
         public override void Reset()
         {
@@ -127,21 +110,19 @@ namespace GameLib
 
         protected virtual void Shuffle()
         {
-            _rnd.Shuffle(_indexes);
+            _rng.ShuffleInplace(_indexes);
         }
     }
 
-
-    // ----- CyclerFixedRand:
-    // example:
-    // cycle 0 : 1032
-    // cycle 1 : 1032
-    // cycle 2 : 1032
+    // A cycler that shuffles elements randomly once and uses the same order for all cycles.
+    // Example:
+    // For 4 elements and a random instance, the cycles will look like:
+    // Cycle 0: 2, 0, 3, 1
+    // Cycle 1: 2, 0, 3, 1 (same as Cycle 0)
+    // Cycle 2: 2, 0, 3, 1
     internal class CyclerRandFixed : CyclerRand
     {
-        public CyclerRandFixed(int amount, long seed) : base(amount, seed)
-        {
-        }
+        public CyclerRandFixed(int amount, Unity.Mathematics.Random rng) : base(amount, rng) { }
 
         public override void Step()
         {
@@ -149,32 +130,31 @@ namespace GameLib
         }
     }
 
-
-    // ----- CyclerRandChaotic:
-    // cycle 0 : 2113
-    // cycle 1 : 1332
-    // cycle 2 : 0132
+    // A cycler that assigns a new random index for each element during every step, resulting in chaotic behavior.
+    // Example:
+    // For 4 elements, the cycles might look like:
+    // Cycle 0: 3, 1, 0, 2
+    // Cycle 1: 2, 0, 3, 1 (new random order for each step)
+    // Cycle 2: 1, 2, 0, 3
     internal class CyclerRandChaotic : CyclerRand
     {
-        public CyclerRandChaotic(int amount, long seed) : base(amount, seed)
-        {
-        }
+        public CyclerRandChaotic(int amount, Unity.Mathematics.Random rng) : base(amount, rng) { }
 
         protected override void Shuffle()
         {
             for (int i = 0; i < _elementsAmount; i++)
-                _indexes[i] = _rnd.Range(0, _elementsAmount);
+                _indexes[i] = _rng.Range(new int2(0, _elementsAmount));
         }
     }
 
-
-    // ----- CyclerYoYo:
-    // cycle 0 : 0123210
-    // cycle 1 : 0123210
-    // cycle 2 : 0123210
+    // A cycler that iterates through elements sequentially forward and then reverses direction (yo-yo effect).
+    // Example:
+    // For 4 elements, the cycles will look like:
+    // Cycle 0: 0, 1, 2, 3, 2, 1
+    // Cycle 1: 0, 1, 2, 3, 2, 1 (same behavior every cycle)
     internal class CyclerYoYo : CyclerBase
     {
-        private int _direction;
+        private int _direction; // Direction of traversal: 1 for forward, -1 for backward
 
         public CyclerYoYo(int amount) : base(amount)
         {
@@ -183,29 +163,27 @@ namespace GameLib
 
         private int Next()
         {
-            var next = _currentIndex + _direction;
+            int next = _currentIndex + _direction;
+
             if (_direction > 0 && next >= _elementsAmount)
-                next = _currentIndex - 1;
+                next = _currentIndex - 1; // Reverse direction at the end
             else if (_direction < 0 && next < 0)
-                next = _currentIndex + 1;
-            next = Mathf.Clamp(next, 0, _elementsAmount - 1);
-            return next;
+                next = _currentIndex + 1; // Reverse direction at the start
+
+            return Mathf.Clamp(next, 0, _elementsAmount - 1);
         }
 
         public override void Step()
         {
             if (IsCycleEnded())
-                _direction = -_direction;
+                _direction *= -1; // Reverse direction
             _currentIndex = Next();
         }
 
         public override bool IsCycleEnded()
         {
-            if (_direction > 0 && _currentIndex == _elementsAmount - 1)
-                return true;
-            if (_direction < 0 && _currentIndex == 0)
-                return true;
-            return false;
+            return (_direction > 0 && _currentIndex == _elementsAmount - 1) ||
+                   (_direction < 0 && _currentIndex == 0);
         }
 
         public override void Reset()

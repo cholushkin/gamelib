@@ -1,407 +1,279 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Assertions;
 
 namespace GameLib.Random
 {
-	public static class RandomHelper
-	{
-		public enum PseudoRandomNumberGenerator
-		{
-			Unity,
-			Lehmer,
-			Wichmann,
-			LinearCongruential
-		}
+    /// Provides a variety of utility methods for working with randomness using Unity.Mathematics.Random.
+    public static class RandomHelper
+    {
+        public delegate void SimpleFunction();
 
-		public delegate void SimpleFunction();
-		private static int _nextRndSeedPointer = -1;
-		private const int MaxSeed = 1000000;
+        /// A default random number generator initialized with the current time.
+        public static readonly Unity.Mathematics.Random Rnd = CreateRandomNumberGenerator();
 
-		public static readonly IPseudoRandomNumberGenerator Rnd = CreateRandomNumberGenerator();
+        /// Creates a new random number generator using the current time as the seed.
+        public static Unity.Mathematics.Random CreateRandomNumberGenerator()
+        {
+            return new Unity.Mathematics.Random((uint)DateTime.Now.Ticks);
+        }
 
-		public static IPseudoRandomNumberGenerator CreateRandomNumberGenerator(long seed = -1, PseudoRandomNumberGenerator prng = PseudoRandomNumberGenerator.LinearCongruential)
-		{
-			if (seed == -1)
-				seed = RandomSeed();
+        /// Creates a new random number generator using the specified seed.
+        public static Unity.Mathematics.Random CreateRandomNumberGenerator(uint seed)
+        {
+            return new Unity.Mathematics.Random(seed);
+        }
 
-			if (seed < 0)
-			{
-				Debug.LogWarning($"Your seed should be above zero {seed} : changed to positive");
-				seed = Math.Abs(seed);
-			}
+        #region Values
 
-			if (seed > MaxSeed)
-			{
-				seed = seed % MaxSeed;
-			}
+        /// Generates a random integer in the full range of int.
+        public static int ValueInt(this Unity.Mathematics.Random rng)
+        {
+            return rng.NextInt(int.MinValue, int.MaxValue);
+        }
 
-			Assert.IsTrue(seed >= 0);
-			Assert.IsTrue(seed <= MaxSeed);
-			Assert.IsTrue(seed <= int.MaxValue);
+        /// Generates a random integer in the range [0, max).
+        public static int ValueInt(this Unity.Mathematics.Random rng, int max)
+        {
+            return rng.NextInt(0, max);
+        }
 
-			switch (prng)
-			{
-				case PseudoRandomNumberGenerator.Unity:
-					return new UnityRng(seed);
-				case PseudoRandomNumberGenerator.Lehmer:
-					return new LehmerRng(seed);
-				case PseudoRandomNumberGenerator.Wichmann:
-					return new WhicmannHillRng(seed);
-				case PseudoRandomNumberGenerator.LinearCongruential:
-					return new LinearConRng(seed);
-			}
-			return null;
-		}
+        /// Generates a random float in the range [0, 1).
+        public static float ValueFloat(this Unity.Mathematics.Random rng)
+        {
+            return rng.NextFloat();
+        }
 
-		public static IPseudoRandomNumberGenerator CreateRandomNumberGenerator(IPseudoRandomNumberGeneratorState state)
-		{
-			if (state == null)
-				return CreateRandomNumberGenerator();
-			return state.Create();
-		}
+        /// Generates a random double in the range [0, 1).
+        public static double ValueDouble(this Unity.Mathematics.Random rng)
+        {
+            return rng.NextDouble();
+        }
 
-		#region values          
-		public static int ValueInt(this IPseudoRandomNumberGenerator rng)
-		{
-			return (int)(rng.Next() * Int32.MaxValue);
-		}
+        /// Generates a random float3 vector with each component in the range [0, 1).
+        public static float3 ValueVector3(this Unity.Mathematics.Random rng)
+        {
+            return rng.NextFloat3();
+        }
 
-		public static int ValueInt(this IPseudoRandomNumberGenerator rng, int max)
-		{
-			if (max == 0)
-				return 0;
-			return ValueInt(rng) % max;
-		}
+        #endregion
 
-		public static float ValueFloat(this IPseudoRandomNumberGenerator rng)
-		{
-			return (float)rng.Next();
-		}
+        #region Ranges
 
-		public static double ValueDouble(this IPseudoRandomNumberGenerator rng)
-		{
-			return rng.Next();
-		}
+        /// Generates a random float within the specified range.
+        public static float Range(this Unity.Mathematics.Random rng, float2 range)
+        {
+            return rng.NextFloat(range.x, range.y);
+        }
 
-		public static Vector3 ValueVector3(this IPseudoRandomNumberGenerator rng)
-		{
-			return new Vector3(rng.ValueFloat(), rng.ValueFloat(), rng.ValueFloat());
-		}
-		#endregion
+        /// Generates a random integer within the specified range.
+        public static int Range(this Unity.Mathematics.Random rng, int2 range)
+        {
+            return rng.NextInt(range.x, range.y);
+        }
 
-		#region ranges
-		public static float Range(this IPseudoRandomNumberGenerator rng, float min, float max) // min[inclusive] and max[inclusive]
-		{
-			return (float)((max - min) * rng.ValueDouble() + min);
-		}
+        /// Alias for generating a random float within a range.
+        public static float FromRange(this Unity.Mathematics.Random rng, float2 range)
+        {
+            return rng.Range(range);
+        }
 
-		public static int Range(this IPseudoRandomNumberGenerator rng, int min, int max) // min[inclusive] and max[exclusive]
-		{
-			return rng.ValueInt(max - min) + min;
-		}
+        /// Alias for generating a random integer within a range.
+        public static int FromRangeInt(this Unity.Mathematics.Random rng, int2 range)
+        {
+            return rng.Range(range);
+        }
 
-		public static float FromRange(this IPseudoRandomNumberGenerator rng, Range range) // ()
-		{
-			return rng.Range(range.From, range.To);
-		}
+        /// Generates a random integer in an inclusive range [x, y].
+        public static int FromRangeIntInclusive(this Unity.Mathematics.Random rng, int2 range)
+        {
+            return rng.NextInt(range.x, range.y + 1);
+        }
 
-		public static int FromRangeInt(this IPseudoRandomNumberGenerator rng, Range range) // [)
-		{
-			return rng.Range((int)range.From, (int)range.To);
-		}
+        #endregion
 
-		public static int FromRangeIntInclusive(this IPseudoRandomNumberGenerator rng, Range range) // []
-		{
-			return rng.Range((int)range.From, (int)(range.To + 1));
-		}
+        #region Containers
 
-		public static int FromRangeIntInclusive(this IPseudoRandomNumberGenerator rng, int from, int to) // []
-		{
-			return rng.Range(from, to + 1);
-		}
-		#endregion
+        /// Selects a random element from an array.
+        public static T FromArray<T>(this Unity.Mathematics.Random rng, T[] arr)
+        {
+            return arr[rng.Range(new int2(0, arr.Length))];
+        }
 
-		#region containers
-		public static T FromArray<T>(this IPseudoRandomNumberGenerator rng, T[] arr)
-		{
-			return arr[rng.Range(0, arr.Length)];
-		}
+        /// Selects a specified number of random elements from an array without repetition.
+        public static T[] FromArray<T>(this Unity.Mathematics.Random rng, T[] arr, int amount)
+        {
+            var src = arr.ToList();
+            var res = new T[amount];
+            for (int i = 0; i < amount; ++i)
+            {
+                res[i] = rng.FromList(src);
+                src.Remove(res[i]);
+            }
 
-		public static T[] FromArray<T>(this IPseudoRandomNumberGenerator rng, T[] arr, int amount) // get amount values from array
-		{
-			var src = arr.ToList();
-			var res = new T[amount];
-			for (int i = 0; i < amount; ++i)
-			{
-				res[i] = rng.FromList(src);
-				src.Remove(res[i]);
-			}
-			return res;
-		}
+            return res;
+        }
 
-		public static T FromList<T>(this IPseudoRandomNumberGenerator rng, List<T> lst)
-		{
-			return lst[rng.Range(0, lst.Count)];
-		}
+        /// Selects a random element from a list.
+        public static T FromList<T>(this Unity.Mathematics.Random rng, List<T> lst)
+        {
+            return lst[rng.Range(new int2(0, lst.Count))];
+        }
 
-		public static List<T> FromList<T>(this IPseudoRandomNumberGenerator rng, List<T> lst, int amount)
-		{
-			var src = new List<T>(lst);
-			var res = new List<T>(amount);
-			for (int i = 0; i < amount; ++i)
-			{
-				T tmp = rng.FromList(src);
-				res.Add(tmp);
-				src.Remove(tmp);
-			}
-			return res;
-		}
+        /// Selects a specified number of random elements from a list without repetition.
+        public static List<T> FromList<T>(this Unity.Mathematics.Random rng, List<T> lst, int amount)
+        {
+            var src = new List<T>(lst);
+            var res = new List<T>(amount);
+            for (int i = 0; i < amount; ++i)
+            {
+                T tmp = rng.FromList(src);
+                res.Add(tmp);
+                src.Remove(tmp);
+            }
 
-		public static KeyValuePair<T, T2> FromDictionary<T, T2>(this IPseudoRandomNumberGenerator rng, Dictionary<T, T2> dic)
-		{
-			return dic.ElementAt(rng.Range(0, dic.Count));
-		}
+            return res;
+        }
 
-		public static T FromEnumerable<T>(this IPseudoRandomNumberGenerator rng, IEnumerable<T> enumerable)
-		{
-			Assert.IsTrue(enumerable.Any());
-			int index = rng.Range(0, enumerable.Count());
-			return enumerable.ElementAt(index);
-		}
+        /// Shuffles the elements of an array and returns a new shuffled array.
+        public static T[] Shuffle<T>(this Unity.Mathematics.Random rng, T[] array)
+        {
+            var shuffledArray = array.ToArray();
+            for (int i = shuffledArray.Length - 1; i > 0; i--)
+            {
+                int rndIndex = rng.Range(new int2(0, i));
+                (shuffledArray[i], shuffledArray[rndIndex]) = (shuffledArray[rndIndex], shuffledArray[i]);
+            }
 
-		public static T[] Shuffle<T>(this IPseudoRandomNumberGenerator rng, T[] array)
-		{
-			T[] shuffledArray = new T[array.Length];
-			Array.Copy(array, shuffledArray, array.Length);
-			for (int i = shuffledArray.Length - 1; i > 0; i--)
-			{
-				int rndIndex = rng.Range(0, i);
-				T temp = shuffledArray[i];
-				shuffledArray[i] = shuffledArray[rndIndex];
-				shuffledArray[rndIndex] = temp;
-			}
-			return shuffledArray;
-		}
+            return shuffledArray;
+        }
 
-		public static List<T> Shuffle<T>(this IPseudoRandomNumberGenerator rng, List<T> list)
-		{
-			List<T> shuffledList = new List<T>(list.Count);
+        /// Shuffles the elements of a list and returns a new shuffled list.
+        public static List<T> Shuffle<T>(this Unity.Mathematics.Random rng, List<T> list)
+        {
+            var shuffledList = new List<T>(list);
+            for (int i = shuffledList.Count - 1; i > 0; i--)
+            {
+                int rndIndex = rng.Range(new int2(0, i));
+                (shuffledList[i], shuffledList[rndIndex]) = (shuffledList[rndIndex], shuffledList[i]);
+            }
 
-			foreach (var item in list)
-				shuffledList.Add(item);
+            return shuffledList;
+        }
 
-			for (int i = shuffledList.Count - 1; i > 0; i--)
-			{
-				int rndIndex = rng.Range(0, i);
-				T temp = shuffledList[i];
-				shuffledList[i] = shuffledList[rndIndex];
-				shuffledList[rndIndex] = temp;
-			}
-			return shuffledList;
-		}
+        /// Shuffles the elements of an array in place.
+        public static void ShuffleInplace<T>(this Unity.Mathematics.Random rng, T[] array)
+        {
+            for (int i = array.Length - 1; i > 0; i--)
+            {
+                int rndIndex = rng.Range(new int2(0, i));
+                (array[i], array[rndIndex]) = (array[rndIndex], array[i]);
+            }
+        }
 
-		public static void ShuffleInplace<T>(this IPseudoRandomNumberGenerator rng, T[] array)
-		{
-			for (int i = array.Length - 1; i > 0; i--)
-			{
-				int rndIndex = rng.Range(0, i);
-				T temp = array[i];
-				array[i] = array[rndIndex];
-				array[rndIndex] = temp;
-			}
-		}
+        /// Shuffles the elements of a list in place.
+        public static void ShuffleInplace<T>(this Unity.Mathematics.Random rng, List<T> list)
+        {
+            for (int i = list.Count - 1; i > 0; i--)
+            {
+                int rndIndex = rng.Range(new int2(0, i));
+                (list[i], list[rndIndex]) = (list[rndIndex], list[i]);
+            }
+        }
 
-		public static void ShuffleInplace<T>(this IPseudoRandomNumberGenerator rng, List<T> list)
-		{
-			for (int i = list.Count - 1; i > 0; i--)
-			{
-				int rndIndex = rng.Range(0, i);
-				T temp = list[i];
-				list[i] = list[rndIndex];
-				list[rndIndex] = temp;
-			}
-		}
-		#endregion
+        #endregion
 
-		#region probabilities
-		public static bool TrySpawnEvent(this IPseudoRandomNumberGenerator rng, float probability, SimpleFunction eventFunc = null)
-		{
-			Assert.IsTrue(probability >= 0.0f);
-			Assert.IsTrue(probability <= 1.0f);
-			if (rng.ValueFloat() <= probability)
-			{
-				eventFunc?.Invoke();
-				return true;
-			}
-			return false;
-		}
+        #region Probabilities
 
-		public static int SpawnEvent(this IPseudoRandomNumberGenerator rng, float[] probs)
-		{
-			if (probs == null || probs.Length == 0)
-				return -1;  // Return -1 for invalid input
-			
-			// Calculate total probability sum
-			float totalProbability = 0;
-			foreach (float prob in probs)
-				totalProbability += prob;
-			
-			if (totalProbability <= 0)
-				return -1;  // Return -1 if all probabilities are zero or negative
+        /// Attempts to trigger an event with the given probability.
+        public static bool TrySpawnEvent(this Unity.Mathematics.Random rng, float probability, SimpleFunction eventFunc = null)
+        {
+            Assert.IsTrue(probability >= 0f && probability <= 1f);
+            if (rng.ValueFloat() <= probability)
+            {
+                eventFunc?.Invoke();
+                return true;
+            }
 
-			// Generate a random point in the range [0, totalProbability)
-			float randomValue = rng.ValueFloat() * totalProbability;
+            return false;
+        }
 
-			// Find the event corresponding to the random value
-			for (int i = 0; i < probs.Length; ++i)
-			{
-				randomValue -= probs[i];
-				if (randomValue < 0)
-					return i;
-			}
+        /// Selects an event index based on a set of probabilities.
+        /// 
+        /// This method takes an array of probabilities representing the likelihood of each event
+        /// and randomly selects one event based on these probabilities. The probabilities do not 
+        /// need to sum to 1; the method normalizes them internally by summing the total probabilities.
+        /// 
+        /// Example:
+        /// - If the probabilities array is [0.2f, 0.3f, 0.5f], the method selects:
+        ///   - Event 0 with a 20% chance
+        ///   - Event 1 with a 30% chance
+        ///   - Event 2 with a 50% chance
+        /// 
+        /// Parameters:
+        /// - `rng`: The Unity.Mathematics.Random instance used for generating random values.
+        /// - `probabilities`: An array of non-negative floats where each value represents the 
+        ///   probability weight for the corresponding event. If the array is empty or contains only
+        ///   non-positive values, the method returns -1.
+        /// 
+        /// Returns:
+        /// - The index of the selected event based on the probabilities.
+        /// - Returns -1 if the input array is null, empty, or all probabilities are zero or negative.
+        /// 
+        /// Notes:
+        /// - If a probability is zero, the corresponding event will not be selected.
+        /// - This method assumes non-negative probabilities. Negative values will not contribute to 
+        ///   the total probability but are not explicitly validated.
+        public static int SpawnEvent(this Unity.Mathematics.Random rng, float[] probabilities)
+        {
+            // Calculate the total sum of probabilities
+            var totalProbability = probabilities.Sum();
+            if (totalProbability <= 0) return -1; // Return -1 if probabilities are invalid
 
-			return -1;
-		}
-		
-		
-		/* Example:
-		 * List<EventOption> options = new List<EventOption>
-		 * {
-		 *		new EventOption { EventName = "EventA", Probability = 0.2f },
-		 *		new EventOption { EventName = "EventB", Probability = 0.3f },
-		 *		new EventOption { EventName = "EventC", Probability = 0.5f }
-		 * };
-		 * int selectedEventIndex = rng.SpawnEvent(options, option => option.Probability);
-		 */
-		public static int SpawnEvent<T>(this IPseudoRandomNumberGenerator rng, IEnumerable<T> items, Func<T, float> probabilitySelector)
-		{
-			// Calculate total probability sum
-			float totalProbability = items.Sum(probabilitySelector);
+            // Generate a random value in the range [0, totalProbability)
+            var randomValue = rng.ValueFloat() * totalProbability;
 
-			if (totalProbability <= 0)
-				return -1;  // Return -1 if all probabilities are zero or negative
+            // Iterate through probabilities and determine the selected event
+            for (int i = 0; i < probabilities.Length; ++i)
+            {
+                randomValue -= probabilities[i];
+                if (randomValue < 0) return i; // Select the current event
+            }
 
-			// Generate a random point in the range [0, totalProbability)
-			float randomValue = rng.ValueFloat() * totalProbability;
+            // Return -1 if no event is selected due to edge cases (should not occur with valid input)
+            return -1;
+        }
 
-			// Iterate through items and select based on the cumulative probability
-			int index = 0;
-			foreach (var item in items)
-			{
-				randomValue -= probabilitySelector(item);
-				if (randomValue < 0)
-					return index;
-				index++;
-			}
+        #endregion
 
-			return -1;  // In case of rounding issues or unexpected input
-		}
-		
-		// Example:
-		// int selectedEventIndex;
-		// EventOption selectedEvent = rng.SpawnEvent(options, option => option.Probability, out selectedEventIndex);
-		// EventOption another = rng.SpawnEvent(options, option => option.Probability, out _);
-		public static T SpawnEvent<T>(this IPseudoRandomNumberGenerator rng, IEnumerable<T> items, Func<T, float> probabilitySelector, out int index)
-		{
-			// Calculate total probability sum
-			float totalProbability = items.Sum(probabilitySelector);
+        #region Enums
 
-			if (totalProbability <= 0)
-			{
-				index = -1; // Optional index in case of failure
-				return default;  // Return the default value for type T (null for reference types, zero for value types)
-			}
+        /// Selects a random value from an enum type.
+        public static T FromEnum<T>(this Unity.Mathematics.Random rng) where T : Enum
+        {
+            var values = Enum.GetValues(typeof(T));
+            return (T)values.GetValue(rng.Range(new int2(0, values.Length)));
+        }
 
-			// Generate a random point in the range [0, totalProbability)
-			float randomValue = rng.ValueFloat() * totalProbability;
+        #endregion
 
-			// Iterate through items and select based on the cumulative probability
-			index = 0; // Initialize index
-			foreach (var item in items)
-			{
-				randomValue -= probabilitySelector(item);
-				if (randomValue < 0)
-					return item; // Return the selected item
-				index++;
-			}
+        #region Colors
 
-			index = -1; // In case of rounding issues or unexpected input
-			return default; // Return the default value for type T
-		}
+        /// Generates a random color within specified HSV and alpha ranges.
+        public static Color ColorHSV(this Unity.Mathematics.Random rng, float2 hueRange, float2 saturationRange, float2 valueRange, float2 alphaRange)
+        {
+            var h = rng.Range(hueRange);
+            var s = rng.Range(saturationRange);
+            var v = rng.Range(valueRange);
+            var a = rng.Range(alphaRange);
+            var color = Color.HSVToRGB(h, s, v, true);
+            color.a = a;
+            return color;
+        }
 
-		public static bool YesNo(this IPseudoRandomNumberGenerator rng, SimpleFunction function = null)
-		{
-			if (rng.ValueFloat() < 0.5f)
-			{
-				if (function != null)
-					function();
-				return true;
-			}
-			return false;
-		}
-		#endregion
-
-		#region enums
-		public static int FromEnum(this IPseudoRandomNumberGenerator rng, Type enumType)
-		{
-			Array arr = Enum.GetValues(enumType);
-			return (int)arr.GetValue(rng.Range(0, arr.Length));
-		}
-
-		public static T FromEnum<T>(this IPseudoRandomNumberGenerator rng)
-		{
-			Array arr = Enum.GetValues(typeof(T));
-			return (T)arr.GetValue(rng.Range(0, arr.Length));
-		}
-		#endregion
-
-		#region colors
-		public static Color ColorHSV(this IPseudoRandomNumberGenerator rng)
-		{
-			return ColorHSV(rng, 0f, 1f, 0f, 1f, 0f, 1f, 1f, 1f);
-		}
-
-		public static Color ColorHSV(this IPseudoRandomNumberGenerator rng, float hueMin, float hueMax)
-		{
-			return ColorHSV(rng, hueMin, hueMax, 0f, 1f, 0f, 1f, 1f, 1f);
-		}
-
-		public static Color ColorHSV(this IPseudoRandomNumberGenerator rng, float hueMin, float hueMax, float saturationMin, float saturationMax)
-		{
-			return ColorHSV(rng, hueMin, hueMax, saturationMin, saturationMax, 0f, 1f, 1f, 1f);
-		}
-
-		public static Color ColorHSV(this IPseudoRandomNumberGenerator rng, float hueMin, float hueMax, float saturationMin, float saturationMax, float valueMin, float valueMax)
-		{
-			return ColorHSV(rng, hueMin, hueMax, saturationMin, saturationMax, valueMin, valueMax, 1f, 1f);
-		}
-
-		public static Color ColorHSV(this IPseudoRandomNumberGenerator rng, float hueMin, float hueMax, float saturationMin, float saturationMax, float valueMin, float valueMax, float alphaMin, float alphaMax)
-		{
-			var h = Mathf.Lerp(hueMin, hueMax, rng.ValueFloat());
-			var s = Mathf.Lerp(saturationMin, saturationMax, rng.ValueFloat());
-			var v = Mathf.Lerp(valueMin, valueMax, rng.ValueFloat());
-			var color = Color.HSVToRGB(h, s, v, true);
-			color.a = Mathf.Lerp(alphaMin, alphaMax, rng.ValueFloat());
-			return color;
-		}
-		#endregion
-
-		private static int _getPseudoRand(int val)
-		{
-			return (((val * 1103515245) + 12345) & 0x7fffffff) % MaxSeed;
-		}
-
-		private static long RandomSeed()
-		{
-			if (_nextRndSeedPointer == -1)
-				_nextRndSeedPointer = (int)(DateTime.Now.Ticks % MaxSeed);
-			else
-				_nextRndSeedPointer = _getPseudoRand(_nextRndSeedPointer);
-			return _nextRndSeedPointer;
-		}
-	}
+        #endregion
+    }
 }

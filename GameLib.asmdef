@@ -5,7 +5,8 @@
         "DOTween.Modules",
         "NaughtyAttributes.Core",
         "Unity.TextMeshPro",
-        "Unity.InputSystem"
+        "Unity.InputSystem",
+        "Unity.Mathematics"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
