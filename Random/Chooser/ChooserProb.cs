@@ -1,5 +1,5 @@
 ﻿using GameLib;
-using Unity.Mathematics;
+using GameLib.Random;
 using UnityEngine.Assertions;
 
 public class ChooserProb<T>

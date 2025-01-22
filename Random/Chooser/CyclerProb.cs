@@ -13,7 +13,7 @@ namespace GameLib
     // Factory class to create probability cyclers
     public static class CyclerProbFactory
     {
-        public static CyclerBaseProb CreateCyclerProb(CyclerProbType cyclerType, float[] probabilities, Unity.Mathematics.Random random)
+        public static CyclerBaseProb CreateCyclerProb(CyclerProbType cyclerType, float[] probabilities, Random.Random random)
         {
             return cyclerType switch
             {
@@ -27,9 +27,9 @@ namespace GameLib
     // Base class for probability-based cyclers
     public abstract class CyclerBaseProb : CyclerBase
     {
-        protected Unity.Mathematics.Random _random; // Random instance for generating values
+        protected Random.Random _random; // Random instance for generating values
 
-        protected CyclerBaseProb(int amount, Unity.Mathematics.Random random) : base(amount)
+        protected CyclerBaseProb(int amount, Random.Random random) : base(amount)
         {
             _random = random;
         }
@@ -46,7 +46,7 @@ namespace GameLib
         private readonly int[] _indexes; // Indices for the current cycle
         private readonly float[] _probabilities; // Probabilities for each element
 
-        public CyclerProbEachTimeSameProb(float[] probabilities, Unity.Mathematics.Random random) 
+        public CyclerProbEachTimeSameProb(float[] probabilities, Random.Random random) 
             : base(probabilities.Length, random)
         {
             _indexes = new int[probabilities.Length];
@@ -92,7 +92,7 @@ namespace GameLib
         private readonly float[] _currentProbabilities; // Probabilities adjusted during the current cycle
         private readonly int[] _indexes; // Indices for the current cycle
 
-        public CyclerProbExclusive(float[] probabilities, Unity.Mathematics.Random random) 
+        public CyclerProbExclusive(float[] probabilities, Random.Random random) 
             : base(probabilities.Length, random)
         {
             _probabilities = probabilities;

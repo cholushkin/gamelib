@@ -1,5 +1,4 @@
 ﻿using GameLib.Random;
-using Unity.Mathematics;
 using UnityEngine;
 
 namespace GameLib
@@ -18,7 +17,7 @@ namespace GameLib
     // Factory class to create instances of cyclers based on CyclerType
     public static class CyclerFactory
     {
-        public static CyclerBase CreateCycler(CyclerType cyclerType, Unity.Mathematics.Random random, int valAmount)
+        public static CyclerBase CreateCycler(CyclerType cyclerType, Random.Random random, int valAmount)
         {
             return cyclerType switch
             {
@@ -80,9 +79,9 @@ namespace GameLib
     internal class CyclerRand : CyclerBase
     {
         protected int[] _indexes;
-        protected Unity.Mathematics.Random _rng;
+        protected Random.Random _rng;
 
-        public CyclerRand(int amount, Unity.Mathematics.Random rng) : base(amount)
+        public CyclerRand(int amount, Random.Random rng) : base(amount)
         {
             _rng = rng;
             _indexes = new int[amount];
@@ -122,7 +121,7 @@ namespace GameLib
     // Cycle 2: 2, 0, 3, 1
     internal class CyclerRandFixed : CyclerRand
     {
-        public CyclerRandFixed(int amount, Unity.Mathematics.Random rng) : base(amount, rng) { }
+        public CyclerRandFixed(int amount, Random.Random rng) : base(amount, rng) { }
 
         public override void Step()
         {
@@ -138,12 +137,12 @@ namespace GameLib
     // Cycle 2: 1, 2, 0, 3
     internal class CyclerRandChaotic : CyclerRand
     {
-        public CyclerRandChaotic(int amount, Unity.Mathematics.Random rng) : base(amount, rng) { }
+        public CyclerRandChaotic(int amount, Random.Random rng) : base(amount, rng) { }
 
         protected override void Shuffle()
         {
             for (int i = 0; i < _elementsAmount; i++)
-                _indexes[i] = _rng.Range(new int2(0, _elementsAmount));
+                _indexes[i] = _rng.Range(0, _elementsAmount);
         }
     }
 
