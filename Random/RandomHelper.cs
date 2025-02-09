@@ -98,11 +98,19 @@ namespace GameLib.Random
         #region Containers
 
         // Selects a random element from an array.
-        public static T FromArray<T>(this Random rng, T[] arr) => arr[rng.Range(0, arr.Length)];
+        public static T FromArray<T>(this Random rng, T[] arr)
+        {
+            if (arr == null || arr.Length == 0)
+                return default; 
+            return arr[rng.Range(0, arr.Length)];
+        }
 
         // Selects a specified number of random elements from an array without repetition.
         public static T[] FromArray<T>(this Random rng, T[] arr, int amount)
         {
+            if (arr == null || arr.Length == 0)
+                return default;
+            
             var src = arr.ToList();
             var res = new T[amount];
             for (int i = 0; i < amount; ++i)
@@ -115,11 +123,20 @@ namespace GameLib.Random
         }
 
         // Selects a random element from a list.
-        public static T FromList<T>(this Random rng, List<T> lst) => lst[rng.Range(0, lst.Count)];
+        public static T FromList<T>(this Random rng, List<T> lst)
+        {
+            if (lst == null || lst.Count == 0)
+                return default; // Return default value for the type T
+            return lst[rng.Range(0, lst.Count)];
+        }
+
 
         // Selects a specified number of random elements from a list without repetition.
         public static List<T> FromList<T>(this Random rng, List<T> lst, int amount)
         {
+            if (lst == null || lst.Count == 0)
+                return default; // Return default value for the type T
+            
             var src = new List<T>(lst);
             var res = new List<T>(amount);
             for (var i = 0; i < amount; ++i)
@@ -135,6 +152,8 @@ namespace GameLib.Random
         // Shuffles the elements of an array and returns a new shuffled array.
         public static T[] Shuffle<T>(this Random rng, T[] array)
         {
+            if (array == null || array.Length == 0)
+                return array;
             var shuffledArray = array.ToArray();
             for (var i = shuffledArray.Length - 1; i > 0; i--)
             {
@@ -148,6 +167,8 @@ namespace GameLib.Random
         // Shuffles the elements of a list and returns a new shuffled list.
         public static List<T> Shuffle<T>(this Random rng, List<T> list)
         {
+            if (list == null || list.Count == 0)
+                return list;
             var shuffledList = new List<T>(list);
             for (var i = shuffledList.Count - 1; i > 0; i--)
             {
@@ -161,6 +182,8 @@ namespace GameLib.Random
         // Shuffles the elements of an array in place.
         public static void ShuffleInplace<T>(this Random rng, T[] array)
         {
+            if (array == null || array.Length == 0)
+                return;
             for (var i = array.Length - 1; i > 0; i--)
             {
                 var rndIndex = rng.Range(0, i);
@@ -171,6 +194,8 @@ namespace GameLib.Random
         // Shuffles the elements of a list in place.
         public static void ShuffleInplace<T>(this Random rng, List<T> list)
         {
+            if (list == null || list.Count == 0)
+                return;
             for (var i = list.Count - 1; i > 0; i--)
             {
                 var rndIndex = rng.Range(0, i);
