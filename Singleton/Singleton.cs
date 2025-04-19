@@ -18,7 +18,7 @@ namespace GameLib.Alg
             }
         }
 
-        public void AssignInstance()
+        protected void AssignInstance()
         {
             Instance = (T)this;
         }
