@@ -1,6 +1,8 @@
 using System;
+using GameLib.Random;
 using NaughtyAttributes;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace Gamelib
 {
@@ -12,8 +14,9 @@ namespace Gamelib
         void LoadState(string jsontText);
     }
 
-    public class DebugWidgetBase : MonoBehaviour, IDebugWidget
+    public class DebugWidgetBase : TrackableMonoBehaviour<DebugWidgetBase>, IDebugWidget 
     {
+        [ReadOnly]
         public string UID;
         public bool NeedApplyStateOnLoad() => false;
         public bool NeedUpdateWhileDisabled() => false;
