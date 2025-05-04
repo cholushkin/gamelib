@@ -3,20 +3,21 @@ using System.IO;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 
-namespace Gamelib
+namespace GameLib
 {
     public class DebugWidgetLogPath : DebugWidgetButton
     {
         public string FormatString;
 
-        public override void Awake()
+        protected override void Awake()
         {
             base.Awake();
             ApplyState();
         }
         
-        public void Reset()
+        public override void Reset()
         {
+            base.Reset();
             FormatString = "Console log path: {0}";
             SetText("Console log path:", Color.white);
         }

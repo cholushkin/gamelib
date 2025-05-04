@@ -1,18 +1,20 @@
 using UnityEngine;
 
-namespace Gamelib
+namespace GameLib
 {
     public class DebugWidgetScreenResolution : DebugWidgetImageAndText
     {
         public string FormatString;
 
-        private void Awake()
+        protected override void Awake()
         {
+            base.Awake();
             ApplyState();
         }
         
-        public void Reset()
+        public override void Reset()
         {
+            base.Reset();
             FormatString = "Screen resolution: {0}x{1}";
             SetText("Screen resolution:", Color.white);
         }

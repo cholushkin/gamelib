@@ -1,18 +1,20 @@
 using UnityEngine;
 
-namespace Gamelib
+namespace GameLib
 {
     public class DebugWidgetCloudProjectID : DebugWidgetImageAndText
     {
         public string FormatString;
 
-        private void Awake()
+        protected override void Awake()
         {
+            base.Awake();
             ApplyState();
         }
         
-        public void Reset()
+        public override void Reset()
         {
+            base.Reset();
             FormatString = "Cloud project ID: {0}";
             SetText("Cloud project ID:", Color.white);
         }

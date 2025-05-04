@@ -1,22 +1,23 @@
-using Gamelib;
-
-public class OverlayActivatorInitial : OverlayActivatorBase
+namespace GameLib
 {
-    public bool KillOnStart;
-    public bool ShowOnStart;
-
-    void Awake()
+    public class OverlayActivatorInitial : OverlayActivatorBase
     {
-        if (KillOnStart)
-            DestroyOverlay();
-        
-        if (ShowOnStart)
+        public bool KillOnStart;
+        public bool ShowOnStart;
+
+        void Awake()
         {
-            ActivateOverlay(true);
-        }
-        else
-        {
-            ActivateOverlay(false);
+            if (KillOnStart)
+                DestroyOverlay();
+
+            if (ShowOnStart)
+            {
+                ActivateOverlay(true);
+            }
+            else
+            {
+                ActivateOverlay(false);
+            }
         }
     }
 }

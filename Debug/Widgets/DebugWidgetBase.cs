@@ -1,10 +1,7 @@
 using System;
-using GameLib.Random;
 using NaughtyAttributes;
-using UnityEngine;
-using Random = UnityEngine.Random;
 
-namespace Gamelib
+namespace GameLib
 {
     interface IDebugWidget
     {

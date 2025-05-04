@@ -1,11 +1,12 @@
 using UnityEngine;
 
-namespace Gamelib
+namespace GameLib
 {
     public class DebugWidgetInputGyro : DebugWidgetImageAndText
     {
-        private void Awake()
+        protected override void Awake()
         {
+            base.Awake();
             ApplyState();
         }
 

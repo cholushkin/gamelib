@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Gamelib
+namespace GameLib
 {
     public class DebugWidgetTemporaryCachePath : DebugWidgetImageAndText
     {

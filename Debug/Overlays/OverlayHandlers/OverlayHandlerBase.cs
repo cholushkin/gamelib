@@ -1,7 +1,6 @@
-using Gamelib;
 using UnityEngine;
 
-namespace uconsole
+namespace GameLib
 {
     /*
      * Default handler for showing and hiding the overlay.

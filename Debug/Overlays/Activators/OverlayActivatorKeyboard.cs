@@ -1,6 +1,6 @@
 using UnityEngine.InputSystem;
 
-namespace Gamelib
+namespace GameLib
 {
     public class OverlayActivatorKeyboard : OverlayActivatorBase
     {

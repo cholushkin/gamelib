@@ -3,7 +3,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Gamelib
+namespace GameLib
 {
     public class DebugWidgetImageAndText : DebugWidgetBase
     {

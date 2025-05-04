@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Events;
-using Gamelib;
+using GameLib;
 using GameLib.Log;
 using UnityEngine;
 using UnityEngine.Assertions;

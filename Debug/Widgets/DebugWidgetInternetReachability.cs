@@ -1,18 +1,20 @@
 using UnityEngine;
 
-namespace Gamelib
+namespace GameLib
 {
     public class DebugWidgetInternetReachability : DebugWidgetImageAndText
     {
         public string FormatString;
 
-        private void Awake()
+        protected override void Awake()
         {
+            base.Awake();
             ApplyState();
         }
         
-        public void Reset()
+        public override void Reset()
         {
+            base.Reset();
             FormatString = "Internet reachability: {0}";
             SetText("Internet reachability:", Color.white);
         }

@@ -1,7 +1,7 @@
 using GameGUI;
 using UnityEngine;
 
-namespace Gamelib
+namespace GameLib
 {
     public class DebugWidgetSimpleGUI : DebugWidgetImageAndText
     {

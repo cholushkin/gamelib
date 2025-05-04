@@ -50,9 +50,13 @@ namespace GameLib.Random
     public static class RandomHelper
     {
         // A default random number generator initialized with the current time.
-        public static readonly Random Rng = CreateRandomNumberGenerator();
-
-        public static Random CreateRandomNumberGenerator() => new((uint) DateTime.Now.Ticks);
+        public static readonly Random Rng = CreateRandomNumberGenerator(out _);
+        
+        public static Random CreateRandomNumberGenerator( out uint seed )
+        {
+            seed = (uint)DateTime.Now.Ticks;
+            return new Random(seed);
+        }
 
         public static Random CreateRandomNumberGenerator(uint seed) => new(seed);
 

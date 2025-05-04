@@ -1,14 +1,15 @@
 using NaughtyAttributes;
 using UnityEngine.UI;
 
-namespace Gamelib
+namespace GameLib
 {
     public class DebugWidgetButton : DebugWidgetImageAndText
     {
         [Required] public Button Button;
 
-        public virtual void Awake()
+        protected override void Awake()
         {
+            base.Awake();
             Button.onClick.AddListener(_onButtonPressInternal);
         }
 

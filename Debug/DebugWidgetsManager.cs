@@ -2,7 +2,7 @@ using GameLib.Alg;
 using NaughtyAttributes;
 using UnityEngine;
 
-namespace Gamelib
+namespace GameLib
 {
     // - Saves/loads states 
     public class DebugWidgetsManager : Singleton<DebugWidgetsManager>

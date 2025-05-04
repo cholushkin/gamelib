@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Gamelib
+namespace GameLib
 {
     public class TrackableMonoBehaviour<T> : MonoBehaviour where T : TrackableMonoBehaviour<T>
     {

@@ -1,7 +1,6 @@
-using uconsole;
 using UnityEngine;
 
-namespace Gamelib
+namespace GameLib
 {
     public class DebugOverlayBase : TrackableMonoBehaviour<DebugOverlayBase>
     {

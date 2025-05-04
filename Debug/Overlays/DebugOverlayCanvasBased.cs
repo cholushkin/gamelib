@@ -2,7 +2,7 @@ using NaughtyAttributes;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Gamelib
+namespace GameLib
 {
     public class DebugOverlayCanvasBased : DebugOverlayBase
     {

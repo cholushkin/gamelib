@@ -1,7 +1,7 @@
 using GameLib;
 using UnityEngine;
 
-namespace Gamelib
+namespace GameLib
 {
     public class DebugWidgetGameState : DebugWidgetImageAndText
     {

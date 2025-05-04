@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Gamelib
+namespace GameLib
 {
     public class DebugWidgetLogFPS : DebugWidgetButton
     {
@@ -19,15 +19,16 @@ namespace Gamelib
         private float _lastFrameTimeMs;  // Store the last frame's duration in milliseconds
         private Mode _mode;
 
-        public override void Awake()
+        protected override void Awake()
         {
             base.Awake();
             _FPSNextPeriod = Time.realtimeSinceStartup + fpsMeasurePeriod;
             Reset();  // Set initial text and color
         }
 
-        public void Reset()
+        public override void Reset()
         {
+            base.Reset();
             AverageFormatString = "FPS: {0} ({1} ms)";
             TargetFormatString = "Target FPS: {0}";
             SetText("FPS: -- (-- ms)", Color.white);  // Initial placeholder text

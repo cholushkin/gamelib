@@ -20,7 +20,7 @@ namespace GameLib
 
         void Awake()
         {
-            _waypointChooser = new Chooser<WayPoint>(Waypoints, WaypointChooserStrategy, RandomHelper.CreateRandomNumberGenerator(), CyclesCount);
+            _waypointChooser = new Chooser<WayPoint>(Waypoints, WaypointChooserStrategy, RandomHelper.CreateRandomNumberGenerator(out _), CyclesCount);
         }
 
         public override WayPoint GetCurrentWaypoint()
