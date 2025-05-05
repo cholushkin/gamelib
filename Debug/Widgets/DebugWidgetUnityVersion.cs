@@ -6,18 +6,20 @@ namespace GameLib
     {
         public string FormatString;
 
-        private void Awake()
+        protected override void Awake()
         {
+            base.Awake();
             ApplyState();
         }
         
-        public void Reset()
+        public override void Reset()
         {
+            base.Reset();
             FormatString = "Unity version: {0}";
             SetText("Unity version:", Color.white);
         }
 
-        public void ApplyState()
+        private void ApplyState()
         {
             SetText(string.Format(FormatString, Application.unityVersion), GetTextColor());
         }

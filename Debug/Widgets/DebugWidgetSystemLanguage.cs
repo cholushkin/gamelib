@@ -6,18 +6,20 @@ namespace GameLib
     {
         public string FormatString;
 
-        private void Awake()
+        protected override void Awake()
         {
+            base.Awake();
             ApplyState();
         }
         
-        public void Reset()
+        public override void Reset()
         {
+            base.Reset();
             FormatString = "System language: {0}";
             SetText("System language:", Color.white);
         }
 
-        public void ApplyState()
+        private void ApplyState()
         {
             SetText(string.Format(FormatString, Application.systemLanguage), GetTextColor());
         }
