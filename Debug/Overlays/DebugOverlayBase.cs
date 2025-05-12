@@ -2,41 +2,19 @@ using UnityEngine;
 
 namespace GameLib
 {
-    public class DebugOverlayBase : TrackableMonoBehaviour<DebugOverlayBase>
+    public abstract class DebugOverlayBase : TrackableMonoBehaviour<DebugOverlayBase>
     {
-        public int GroupdIndex;
         public Transform Content;
+        public int GroupdIndex;
         public OverlayHandlerBase OverlayHandler;
 
-        public virtual void Show()
-        {
-            ProccessGroupHide();
-            
-            if(Content)
-                Content.gameObject.SetActive(true);
-            
-            if(OverlayHandler)
-                OverlayHandler.OnOverlayToggle(true);
-        }
+        public abstract void Show();
 
-        public virtual void Hide()
-        {
-            if(Content)
-                Content.gameObject.SetActive(false);
-            
-            if(OverlayHandler)
-                OverlayHandler.OnOverlayToggle(false);
-        }
+        public abstract void Hide();
 
-        public virtual bool IsShown()
-        {
-            return Content.gameObject.activeSelf;
-        }
+        public abstract bool IsShown();
 
-        public virtual void SetScale(float overlayScale)
-        {
-            
-        }
+        public abstract void SetScale(float overlayScale);
 
         protected void ProccessGroupHide()
         {

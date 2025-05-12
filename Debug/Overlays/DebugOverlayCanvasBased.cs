@@ -6,6 +6,7 @@ namespace GameLib
 {
     public class DebugOverlayCanvasBased : DebugOverlayBase
     {
+        public bool DisableOnHide;
         [Required] public Canvas Canvas;
         [Required] public CanvasGroup CanvasGroup;
         [Required] public CanvasScaler CanvasScaler;
@@ -13,28 +14,28 @@ namespace GameLib
         public override void Show()
         {
             ProccessGroupHide();
-            
-            if(Content)
+
+            if (DisableOnHide)
                 Content.gameObject.SetActive(true);
-            
+
             CanvasGroup.alpha = 1; // Fully visible
             CanvasGroup.interactable = true;
             CanvasGroup.blocksRaycasts = true;
-            
-            if(OverlayHandler)
+
+            if (OverlayHandler)
                 OverlayHandler.OnOverlayToggle(true);
         }
 
         public override void Hide()
         {
-            if(Content)
+            if (DisableOnHide)
                 Content.gameObject.SetActive(false);
-            
+
             CanvasGroup.alpha = 0; // Fully invisible
             CanvasGroup.interactable = false;
             CanvasGroup.blocksRaycasts = false;
-            
-            if(OverlayHandler)
+
+            if (OverlayHandler)
                 OverlayHandler.OnOverlayToggle(false);
         }
 
