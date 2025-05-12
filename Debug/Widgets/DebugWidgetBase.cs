@@ -11,7 +11,7 @@ namespace GameLib
         void LoadState(string jsontText);
     }
 
-    public class DebugWidgetBase : TrackableMonoBehaviour<DebugWidgetBase>, IDebugWidget 
+    public class DebugWidgetBase : TrackableMonoBehaviourUniqueName<DebugWidgetBase>, IDebugWidget 
     {
         [ReadOnly]
         public string UID;
