@@ -6,7 +6,8 @@
         "NaughtyAttributes.Core",
         "Unity.TextMeshPro",
         "Unity.InputSystem",
-        "Unity.Mathematics"
+        "Unity.Mathematics",
+        "VitalRouter"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

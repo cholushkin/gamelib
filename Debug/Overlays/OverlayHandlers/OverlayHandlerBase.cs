@@ -1,4 +1,5 @@
 using UnityEngine;
+using VitalRouter;
 
 namespace GameLib
 {
@@ -16,7 +17,7 @@ namespace GameLib
      */
     public class OverlayHandlerBase : MonoBehaviour
     {
-        public class EventOverlayToggle
+        public class EventOverlayToggle : ICommand
         {
             public DebugOverlayBase Overlay;
             public bool Enabled;
@@ -24,7 +25,7 @@ namespace GameLib
 
         public void OnOverlayToggle(bool flag)
         {
-            GlobalEventAggregator.EventAggregator.Publish(new EventOverlayToggle
+            VitalRouter.Router.Default.PublishAsync( new EventOverlayToggle
             {
                 Overlay = GetComponent<DebugOverlayBase>(),
                 Enabled =  flag

@@ -1,11 +1,12 @@
 using GameGUI;
 using UnityEngine;
+using VitalRouter;
 
 namespace GameLib
 {
     public class DebugWidgetSimpleGUI : DebugWidgetImageAndText
     {
-        public class EventRetrieveSimpleGUIInstance
+        public class EventRetrieveSimpleGUIInstance : ICommand
         {
             public SimpleGUI Instance;
         }
@@ -17,7 +18,7 @@ namespace GameLib
         {
             if (!SimpleGUI)
             {
-                GlobalEventAggregator.EventAggregator.Publish(_retrieveEvent);
+                Router.Default.PublishAsync(_retrieveEvent);
                 SimpleGUI = _retrieveEvent.Instance;
             }
             else

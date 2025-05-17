@@ -1,16 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Events;
 using GameLib;
 using GameLib.Log;
 using UnityEngine;
 using UnityEngine.Assertions;
+using VitalRouter;
 
 namespace GameGUI
 {
     [ScriptExecutionOrder(-8)]
-    public class SimpleGUI : MonoBehaviour, IHandle<DebugWidgetSimpleGUI.EventRetrieveSimpleGUIInstance>
+    public class SimpleGUI : MonoBehaviour
     {
         public interface IInitialize
         {
@@ -36,8 +36,8 @@ namespace GameGUI
             // disable screens 
             foreach (Transform child in ScreensRoot)
                 child.gameObject.SetActive(false);
-            
-            GlobalEventAggregator.EventAggregator.Subscribe( this);
+
+            Router.Default.Subscribe<DebugWidgetSimpleGUI.EventRetrieveSimpleGUIInstance>(Handle);
         }
 
         void Start()
@@ -219,9 +219,9 @@ namespace GameGUI
             return str;
         }
 
-        public void Handle(DebugWidgetSimpleGUI.EventRetrieveSimpleGUIInstance message)
+        private void Handle(DebugWidgetSimpleGUI.EventRetrieveSimpleGUIInstance eventRetrieveSimpleGUIInstance, PublishContext context)
         {
-            message.Instance = this;
+            eventRetrieveSimpleGUIInstance.Instance = this;
         }
     }
 }
