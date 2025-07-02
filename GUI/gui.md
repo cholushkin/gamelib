@@ -21,6 +21,13 @@
 |  +------------+     +-------------+        |
 +--------------------------------------------+
 ```
+- Model and Handler communicate bidirectionally to manage data and notify changes.
+- Handler passes data/events to Controller.
+- Controller transforms data and commands View.
+- View handles UI rendering and visual feedback.
+
+All parts live inside the Widget container.
+
 
 #### Widget
 A **Widget** is a combination of components, views, and the data they work with. For example, a widget might consist of the following components:
