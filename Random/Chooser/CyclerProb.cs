@@ -1,57 +1,60 @@
 ﻿using System;
 using GameLib.Random;
-using UnityEngine;
 
 namespace GameLib
 {
+    // Types of probability cyclers
     public enum CyclerProbType
     {
-        CyclerProbEachTimeSameProb = 0, // default
-        CyclerProbExclusive,
+        CyclerProbEachTimeSameProb = 0, // Default behavior: probabilities remain the same each time
+        CyclerProbExclusive,           // Exclusive probabilities: once chosen, an element cannot be chosen again in the same cycle
     }
 
+    // Factory class to create probability cyclers
     public static class CyclerProbFactory
     {
-        public static CyclerBaseProb CreateCyclerProb(CyclerProbType cyclerType, float[] probs)
+        public static CyclerBaseProb CreateCyclerProb(CyclerProbType cyclerType, float[] probabilities, Random.Random random)
         {
-            if (cyclerType == CyclerProbType.CyclerProbEachTimeSameProb)
-                return new CyclerProbEachTimeSameProb(probs);
-            if (cyclerType == CyclerProbType.CyclerProbExclusive)
-                return new CyclerProbExclusive(probs);
-          
-            Debug.LogErrorFormat("Can't create probability cycler of type '{0}'.", cyclerType);
-            return null;
+            return cyclerType switch
+            {
+                CyclerProbType.CyclerProbEachTimeSameProb => new CyclerProbEachTimeSameProb(probabilities, random),
+                CyclerProbType.CyclerProbExclusive => new CyclerProbExclusive(probabilities, random),
+                _ => throw new ArgumentException($"Invalid CyclerProbType: {cyclerType}")
+            };
         }
     }
 
+    // Base class for probability-based cyclers
     public abstract class CyclerBaseProb : CyclerBase
     {
-        protected IPseudoRandomNumberGenerator _rnd = RandomHelper.CreateRandomNumberGenerator(-1, RandomHelper.PseudoRandomNumberGenerator.LinearCongruential);
-        protected CyclerBaseProb(int amount) : base(amount)
+        protected Random.Random _random; // Random instance for generating values
+
+        protected CyclerBaseProb(int amount, Random.Random random) : base(amount)
         {
+            _random = random;
         }
     }
 
-    // ----- CyclerProbEachTimeSameProb:
-    // a-0.1 b=0.5 c=1
-    // cycle 0 : c c b
-    // cycle 1 : c b c
-    // cycle 2 : a c c
+    // Cycler with fixed probabilities for each selection
+    // Example:
+    // Probabilities: a=0.1, b=0.5, c=1
+    // Cycle 0: c, c, b
+    // Cycle 1: c, b, c
+    // Cycle 2: a, c, c
     internal class CyclerProbEachTimeSameProb : CyclerBaseProb
     {
-        protected int[] _indexes;
-        private float[] _probs;
-        public CyclerProbEachTimeSameProb(float[] probs) : base(probs.Length)
+        private readonly int[] _indexes; // Indices for the current cycle
+        private readonly float[] _probabilities; // Probabilities for each element
+
+        public CyclerProbEachTimeSameProb(float[] probabilities, Random.Random random) 
+            : base(probabilities.Length, random)
         {
-            _indexes = new int[probs.Length];
-            _probs = probs;
+            _indexes = new int[probabilities.Length];
+            _probabilities = probabilities;
             Shuffle();
         }
 
-        public override int Now()
-        {
-            return _indexes[_currentIndex];
-        }
+        public override int Now() => _indexes[_currentIndex];
 
         public override void Step()
         {
@@ -60,15 +63,14 @@ namespace GameLib
             _currentIndex = (_currentIndex + 1) % _elementsAmount;
         }
 
-        public override bool IsCycleEnded()
-        {
-            return _currentIndex == _elementsAmount - 1;
-        }
+        public override bool IsCycleEnded() => _currentIndex == _elementsAmount - 1;
 
         protected void Shuffle()
         {
-            for (int i = 0; i < _probs.Length; i++)
-                _indexes[i] = _rnd.SpawnEvent(_probs);
+            for (int i = 0; i < _probabilities.Length; i++)
+            {
+                _indexes[i] = _random.SpawnEvent(_probabilities);
+            }
         }
 
         public override void Reset()
@@ -78,30 +80,28 @@ namespace GameLib
         }
     }
 
-
-    // ----- CyclerProbExclusive:
-    // a-0.1 b=0.5 c=1
-    // cycle 0 : c b a
-    // cycle 1 : c b a
-    // cycle 2 : c a b
-    // never repeat one element
+    // Cycler with exclusive probabilities (an element cannot be selected again in the same cycle)
+    // Example:
+    // Probabilities: a=0.1, b=0.5, c=1
+    // Cycle 0: c, b, a
+    // Cycle 1: c, b, a
+    // Cycle 2: c, a, b
     internal class CyclerProbExclusive : CyclerBaseProb
     {
-        private float[] _probs;
-        private float[] _curProbs;
-        protected int[] _indexes;
-        public CyclerProbExclusive(float[] probs) : base(probs.Length)
+        private readonly float[] _probabilities; // Original probabilities
+        private readonly float[] _currentProbabilities; // Probabilities adjusted during the current cycle
+        private readonly int[] _indexes; // Indices for the current cycle
+
+        public CyclerProbExclusive(float[] probabilities, Random.Random random) 
+            : base(probabilities.Length, random)
         {
-            _probs = probs;
-            _indexes = new int[probs.Length];
-            _curProbs = new float[_probs.Length];
+            _probabilities = probabilities;
+            _currentProbabilities = new float[probabilities.Length];
+            _indexes = new int[probabilities.Length];
             Recharge();
         }
 
-        public override int Now()
-        {
-            return _indexes[_currentIndex];
-        }
+        public override int Now() => _indexes[_currentIndex];
 
         public override void Step()
         {
@@ -110,10 +110,7 @@ namespace GameLib
             _currentIndex = (_currentIndex + 1) % _elementsAmount;
         }
 
-        public override bool IsCycleEnded()
-        {
-            return _currentIndex == _elementsAmount - 1;
-        }
+        public override bool IsCycleEnded() => _currentIndex == _elementsAmount - 1;
 
         public override void Reset()
         {
@@ -123,11 +120,11 @@ namespace GameLib
 
         private void Recharge()
         {
-            Array.Copy(_probs, _curProbs, _probs.Length);
-            for (int i = 0; i < _probs.Length; i++)
+            Array.Copy(_probabilities, _currentProbabilities, _probabilities.Length);
+            for (int i = 0; i < _probabilities.Length; i++)
             {
-                _indexes[i] = _rnd.SpawnEvent(_curProbs);
-                _curProbs[_indexes[i]] = 0f; // exclude that option 
+                _indexes[i] = _random.SpawnEvent(_currentProbabilities);
+                _currentProbabilities[_indexes[i]] = 0f; // Exclude the selected option
             }
         }
     }

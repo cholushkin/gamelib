@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using GameLib;
 using GameLib.Log;
 using UnityEngine;
 using UnityEngine.Assertions;
+using VitalRouter;
 
 namespace GameGUI
 {
@@ -34,6 +36,8 @@ namespace GameGUI
             // disable screens 
             foreach (Transform child in ScreensRoot)
                 child.gameObject.SetActive(false);
+
+            Router.Default.Subscribe<DebugWidgetSimpleGUI.EventRetrieveSimpleGUIInstance>(Handle);
         }
 
         void Start()
@@ -213,6 +217,11 @@ namespace GameGUI
             foreach (var guiScreenBase in _screenStack)
                 str += $"*{guiScreenBase.name}, modal:{guiScreenBase.IsModal}, input:{guiScreenBase.IsInputEnabled}, inTransaction:{guiScreenBase.IsInTransaction}, inputEnabledRefs:{guiScreenBase.GetRefsCount()}\n";
             return str;
+        }
+
+        private void Handle(DebugWidgetSimpleGUI.EventRetrieveSimpleGUIInstance eventRetrieveSimpleGUIInstance, PublishContext context)
+        {
+            eventRetrieveSimpleGUIInstance.Instance = this;
         }
     }
 }

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using GameLib.Log;
 using GameLib.Random;
 using Object = UnityEngine.Object;
-using Random = UnityEngine.Random;
+using Random = GameLib.Random.Random;
 
 namespace ResourcesHelper
 {
@@ -53,9 +53,6 @@ namespace ResourcesHelper
 
     public static class GroupHolderHelper
     {
-        public static T GetRandom<T>(this GroupHolder<T> rh, IPseudoRandomNumberGenerator rnd) where T : Object
-        {
-            return rnd.FromArray(rh.Objects);
-        }
+        public static T GetRandom<T>(this GroupHolder<T> rh, Random rnd) where T : Object => rnd.FromArray(rh.Objects);
     }
 }

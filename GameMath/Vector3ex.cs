@@ -13,6 +13,11 @@ namespace GameLib
         {
             return new Vector3(v2.x, v2.y, z);
         }
+        
+        public static Vector3 ToVector3(this Vector2Int v2, float z)
+        {
+            return new Vector3(v2.x, v2.y, z);
+        }
 
         public static Vector2 ToVector2(this Vector3 v3)
         {

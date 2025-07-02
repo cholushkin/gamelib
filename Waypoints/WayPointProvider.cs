@@ -1,5 +1,5 @@
-﻿using UnityEngine;
-
+﻿using GameLib.Random;
+using UnityEngine;
 
 namespace GameLib
 {
@@ -20,7 +20,7 @@ namespace GameLib
 
         void Awake()
         {
-            _waypointChooser = new Chooser<WayPoint>(Waypoints, WaypointChooserStrategy, CyclesCount);
+            _waypointChooser = new Chooser<WayPoint>(Waypoints, WaypointChooserStrategy, RandomHelper.CreateRandomNumberGenerator(out _), CyclesCount);
         }
 
         public override WayPoint GetCurrentWaypoint()

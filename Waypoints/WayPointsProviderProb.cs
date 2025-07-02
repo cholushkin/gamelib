@@ -1,4 +1,6 @@
-﻿namespace GameLib
+﻿using GameLib.Random;
+
+namespace GameLib
 {
     public class WayPointsProviderProb : WayPointProviderBase
     {
@@ -12,7 +14,7 @@
         void Awake()
         {
             _waypointChooser =
-                new ChooserProb<WayPoint>(Waypoints, Probabilities, WaypointChooserStrategy, CyclesCount);
+                new ChooserProb<WayPoint>(Waypoints, Probabilities, WaypointChooserStrategy,RandomHelper.CreateRandomNumberGenerator(out _), CyclesCount );
         }
 
         public override WayPoint GetCurrentWaypoint()
