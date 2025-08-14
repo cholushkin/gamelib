@@ -1,6 +1,34 @@
 ### MVHC Design Pattern
 **MVHC** stands for **Model-View-Handler-Controller**. This pattern is an adaptation of the **MVVC** pattern specifically tailored for Unity development.
 
+
+```
++--------------------------------------------+
+|                  Widget                    |
+|  (Container for all components below)      |
+|                                            |
+|  +------------+     +-------------+        |
+|  |   Model    |     |   Handler   |        |
+|  | (Data)     |<--->| (Data Access|        |
+|  |            |     |  & Events)  |        |
+|  +------------+     +-------------+        |
+|         ^                   |              |
+|         |                   v              |
+|  +------------+     +-------------+        |
+|  | Controller |<--->|    View     |        |
+|  | (State &   |     | (Display &  |        |
+|  |  Logic)    |     |  Visuals)   |        |
+|  +------------+     +-------------+        |
++--------------------------------------------+
+```
+- Model and Handler communicate bidirectionally to manage data and notify changes.
+- Handler passes data/events to Controller.
+- Controller transforms data and commands View.
+- View handles UI rendering and visual feedback.
+
+All parts live inside the Widget container.
+
+
 #### Widget
 A **Widget** is a combination of components, views, and the data they work with. For example, a widget might consist of the following components:
 
