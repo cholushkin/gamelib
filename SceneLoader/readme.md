@@ -24,5 +24,6 @@ Developers often organize various objects, such as logs, consoles, different con
 ### Project Organization to Utilize SceneLoader
 
 - **Starting Scene**: Add the starting scene to the `BuildProfiles` scene list as index 0. The recommended name for this scene is `Main` (serving as the entry point for the game). This scene must contain the `SceneLoader` with the standard game start sequence (`main-standard` from the example).
+- Be carefull: don't add Main scene in any sequence, it will be loaded automatically for any sequence
 - **SceneDependenciesConfig**: This configuration should specify the sequences for each scene that the developer wants to run in isolation. The config name must start with `Main` (e.g., `MainSceneLoaderSeqConfig`).
 - To access a toolbar containing special play buttons press "Overlay menu" in the scene right corner then choose "SceneLoader toolbar".
