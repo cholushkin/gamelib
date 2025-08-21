@@ -12,6 +12,8 @@ public class DynamicImageColoring : MonoBehaviour
     public Color[] Colors;
     public Image Image;
     public Ease Ease;
+    
+    [ShowAsRange]
     public float2 Duration;
     public bool StartOnAwake;
     public bool IndependentUpdate;
