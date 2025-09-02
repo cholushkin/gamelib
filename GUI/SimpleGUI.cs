@@ -16,8 +16,11 @@ namespace GameGUI
         {
             void Initialize();
         }
+        [Tooltip("If specified this screen will be activated on start")]
         public string StartingScreenName;
         public Transform ScreensRoot;
+        
+        [Tooltip("Screens to use for creating new screens on demand. If not specified, all screens must be present in the scene")]
         public GUIScreenBase[] Screens;
         public LogChecker Log;
         
@@ -33,7 +36,7 @@ namespace GameGUI
             foreach (var init in GetComponentsInChildren<IInitialize>(true))
                 init.Initialize();
 
-            // disable screens 
+            // Disable all screens (default state should be all off) 
             foreach (Transform child in ScreensRoot)
                 child.gameObject.SetActive(false);
 
@@ -42,11 +45,13 @@ namespace GameGUI
 
         void Start()
         {
-            // activating default screen
+            // Activating starting screen
             if (string.IsNullOrEmpty(StartingScreenName))
                 return;
+            
             if (Log.Normal())
                 Debug.LogFormat("Activating starting screen {0}", StartingScreenName);
+            
             PushScreen(StartingScreenName);
         }
 
@@ -70,7 +75,6 @@ namespace GameGUI
             {
                 var popped = _screenStack.Pop();
                 popped.DisappearForced();
-
             }
             return count;
         }
