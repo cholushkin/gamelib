@@ -5,6 +5,7 @@ using GameLib;
 using GameLib.Log;
 using UnityEngine;
 using UnityEngine.Assertions;
+using UnityEngine.Serialization;
 using VitalRouter;
 
 namespace GameGUI
@@ -20,8 +21,8 @@ namespace GameGUI
         public string StartingScreenName;
         public Transform ScreensRoot;
         
-        [Tooltip("Screens to use for creating new screens on demand. If not specified, all screens must be present in the scene")]
-        public GUIScreenBase[] Screens;
+        [FormerlySerializedAs("Screens")] [Tooltip("Screens to use for creating new screens on demand. If not specified, all screens must be present in the scene")]
+        public GUIScreenBase[] ScreenPrefabs;
         public LogChecker Log;
         
 
@@ -185,7 +186,7 @@ namespace GameGUI
             // create new by name
             if (screenTransform == null)
             {
-                var screenPrefab = Screens.FirstOrDefault(n => screenName == n.name);
+                var screenPrefab = ScreenPrefabs.FirstOrDefault(n => screenName == n.name);
                 screenPrefab.gameObject.SetActive(false);
                 Assert.IsNotNull(screenPrefab, "SimpleGUI: can't find screen named " + screenName);
                 screenTransform = Instantiate(screenPrefab.transform, ScreensRoot);
