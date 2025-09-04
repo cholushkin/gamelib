@@ -7,8 +7,14 @@ namespace GameGUI
         public Animator Animator;
         private readonly string AnimationKey = "IsInScreen";
 
-        public override void StartAppearAnimation()
+        public override void StartAppearAnimation(AnimationType anim)
         {
+            if (anim == AnimationType.Fast)
+            {
+                base.StartAppearAnimation(anim);
+                return;
+            }
+
             IsInTransaction = true;
             IsInputEnabled = false;
             if (Animator)
@@ -16,8 +22,13 @@ namespace GameGUI
             TransitionProcessor.Appear(null);
         }
 
-        public override void StartDisappearAnimation()
+        public override void StartDisappearAnimation(AnimationType anim)
         {
+            if (anim == AnimationType.Fast)
+            {
+                base.StartDisappearAnimation(anim);
+                return;
+            }
             IsInTransaction = true;
             IsInputEnabled = false;
             if (Animator)

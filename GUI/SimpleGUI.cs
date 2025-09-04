@@ -75,34 +75,72 @@ namespace GameGUI
             while (_screenStack.Count > 0)
             {
                 var popped = _screenStack.Pop();
-                popped.DisappearForced();
+                popped.StartDisappearAnimation(GUIScreenBase.AnimationType.Fast);
             }
             return count;
         }
 
         // pops current screen and returns it
-        public GUIScreenBase PopScreen(string expectedScreenToPop = null)
+        public GUIScreenBase PopTopScreen(string expectedScreenOnTop = null)
         {
             var screenOnTop = GetCurrentScreen();
             GUIScreenBase popped;
             if (screenOnTop == null)
             {
-                Debug.LogError($"Nothing to pop {expectedScreenToPop}");
+                Debug.LogError($"Nothing to pop with an expected name '{expectedScreenOnTop}'");
                 return null;
             }
 
-            if (expectedScreenToPop != null && (expectedScreenToPop != screenOnTop.name))
+            if (!string.IsNullOrEmpty(expectedScreenOnTop) && (expectedScreenOnTop != screenOnTop.name))
             {
-                Debug.LogError($"Expecting to pop screen '{expectedScreenToPop}', but got '{screenOnTop.name}'");
+                Debug.LogError($"Expecting to pop screen '{expectedScreenOnTop}', but got '{screenOnTop.name}'");
                 return null;
             }
 
             popped = _screenStack.Pop();
-            screenOnTop.StartDisappearAnimation();
+            screenOnTop.StartDisappearAnimation(GUIScreenBase.AnimationType.Regular);
             
             Assert.IsTrue(popped == screenOnTop);
             return popped;
         }
+
+        public GUIScreenBase PopScreen(string screenName)
+        {
+            if (_screenStack.Count == 0)
+            {
+                Debug.LogError($"Nothing to pop. Looking for screen '{screenName}'");
+                return null;
+            }
+
+            // Find if the target screen exists in the stack
+            if (!_screenStack.Any(s => s.name == screenName))
+            {
+                Debug.LogError($"Screen '{screenName}' was not found in stack");
+                return null;
+            }
+
+            GUIScreenBase targetScreen = null;
+
+            // Pop until we reach the target
+            while (_screenStack.Count > 0)
+            {
+                var top = _screenStack.Pop();
+                if (top.name == screenName)
+                {
+                    targetScreen = top;
+                    targetScreen.StartDisappearAnimation(GUIScreenBase.AnimationType.Regular);
+                    break;
+                }
+                else
+                {
+                    top.StartDisappearAnimation(GUIScreenBase.AnimationType.Fast);
+                }
+            }
+
+            return targetScreen;
+        }
+
+
 
         internal void OnScreenPopped(GUIScreenBase screen)
         {
