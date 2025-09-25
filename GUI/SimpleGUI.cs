@@ -5,6 +5,7 @@ using GameLib;
 using GameLib.Log;
 using UnityEngine;
 using UnityEngine.Assertions;
+using UnityEngine.Serialization;
 using VitalRouter;
 
 namespace GameGUI
@@ -16,9 +17,12 @@ namespace GameGUI
         {
             void Initialize();
         }
+        [Tooltip("If specified this screen will be activated on start")]
         public string StartingScreenName;
         public Transform ScreensRoot;
-        public GUIScreenBase[] Screens;
+        
+        [FormerlySerializedAs("Screens")] [Tooltip("Screens to use for creating new screens on demand. If not specified, all screens must be present in the scene")]
+        public GUIScreenBase[] ScreenPrefabs;
         public LogChecker Log;
         
 
@@ -33,7 +37,7 @@ namespace GameGUI
             foreach (var init in GetComponentsInChildren<IInitialize>(true))
                 init.Initialize();
 
-            // disable screens 
+            // Disable all screens (default state should be all off) 
             foreach (Transform child in ScreensRoot)
                 child.gameObject.SetActive(false);
 
@@ -42,11 +46,13 @@ namespace GameGUI
 
         void Start()
         {
-            // activating default screen
+            // Activating starting screen
             if (string.IsNullOrEmpty(StartingScreenName))
                 return;
+            
             if (Log.Normal())
                 Debug.LogFormat("Activating starting screen {0}", StartingScreenName);
+            
             PushScreen(StartingScreenName);
         }
 
@@ -69,35 +75,72 @@ namespace GameGUI
             while (_screenStack.Count > 0)
             {
                 var popped = _screenStack.Pop();
-                popped.DisappearForced();
-
+                popped.StartDisappearAnimation(GUIScreenBase.AnimationType.Fast);
             }
             return count;
         }
 
         // pops current screen and returns it
-        public GUIScreenBase PopScreen(string expectedScreenToPop = null)
+        public GUIScreenBase PopTopScreen(string expectedScreenOnTop = null)
         {
             var screenOnTop = GetCurrentScreen();
             GUIScreenBase popped;
             if (screenOnTop == null)
             {
-                Debug.LogError($"Nothing to pop {expectedScreenToPop}");
+                Debug.LogError($"Nothing to pop with an expected name '{expectedScreenOnTop}'");
                 return null;
             }
 
-            if (expectedScreenToPop != null && (expectedScreenToPop != screenOnTop.name))
+            if (!string.IsNullOrEmpty(expectedScreenOnTop) && (expectedScreenOnTop != screenOnTop.name))
             {
-                Debug.LogError($"Expecting to pop screen '{expectedScreenToPop}', but got '{screenOnTop.name}'");
+                Debug.LogError($"Expecting to pop screen '{expectedScreenOnTop}', but got '{screenOnTop.name}'");
                 return null;
             }
 
             popped = _screenStack.Pop();
-            screenOnTop.StartDisappearAnimation();
+            screenOnTop.StartDisappearAnimation(GUIScreenBase.AnimationType.Regular);
             
             Assert.IsTrue(popped == screenOnTop);
             return popped;
         }
+
+        public GUIScreenBase PopScreen(string screenName)
+        {
+            if (_screenStack.Count == 0)
+            {
+                Debug.LogError($"Nothing to pop. Looking for screen '{screenName}'");
+                return null;
+            }
+
+            // Find if the target screen exists in the stack
+            if (!_screenStack.Any(s => s.name == screenName))
+            {
+                Debug.LogError($"Screen '{screenName}' was not found in stack");
+                return null;
+            }
+
+            GUIScreenBase targetScreen = null;
+
+            // Pop until we reach the target
+            while (_screenStack.Count > 0)
+            {
+                var top = _screenStack.Pop();
+                if (top.name == screenName)
+                {
+                    targetScreen = top;
+                    targetScreen.StartDisappearAnimation(GUIScreenBase.AnimationType.Regular);
+                    break;
+                }
+                else
+                {
+                    top.StartDisappearAnimation(GUIScreenBase.AnimationType.Fast);
+                }
+            }
+
+            return targetScreen;
+        }
+
+
 
         internal void OnScreenPopped(GUIScreenBase screen)
         {
@@ -181,7 +224,7 @@ namespace GameGUI
             // create new by name
             if (screenTransform == null)
             {
-                var screenPrefab = Screens.FirstOrDefault(n => screenName == n.name);
+                var screenPrefab = ScreenPrefabs.FirstOrDefault(n => screenName == n.name);
                 screenPrefab.gameObject.SetActive(false);
                 Assert.IsNotNull(screenPrefab, "SimpleGUI: can't find screen named " + screenName);
                 screenTransform = Instantiate(screenPrefab.transform, ScreensRoot);

@@ -21,9 +21,7 @@ namespace GameLib
 
         public static void Swap<T>(ref T lhs, ref T rhs)
         {
-            T temp = lhs;
-            lhs = rhs;
-            rhs = temp;
+            (lhs, rhs) = (rhs, lhs);
         }
 
         public static bool IsEven(float number)

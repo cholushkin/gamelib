@@ -12,7 +12,9 @@ public class ScreenTransitionProcessor : MonoBehaviour
 
     void Reset()
     {
-        Duration = 1f;
+        Duration = 0.2f;
+        ToColorEase = Ease.InSine;
+        ToTransparentEase = Ease.OutSine;
     }
 
     public void Appear(TweenCallback appearCallback, bool isInstant = false)

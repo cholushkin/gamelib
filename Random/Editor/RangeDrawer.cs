@@ -1,6 +1,6 @@
-using Unity.Mathematics;
 using UnityEngine;
 using UnityEditor;
+using Unity.Mathematics;
 
 [CustomPropertyDrawer(typeof(ShowAsRangeAttribute))]
 [CustomPropertyDrawer(typeof(int2))]

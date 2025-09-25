@@ -4,6 +4,12 @@ namespace GameGUI
 {
     public class GUIScreenBase : MonoBehaviour
     {
+        public enum AnimationType
+        {
+            None,
+            Fast,
+            Regular
+        }
         public ScreenTransitionProcessor TransitionProcessor;
         public bool IsModal;
         public bool IsDestroyOnPop;
@@ -47,14 +53,14 @@ namespace GameGUI
         {
         }
 
-        public virtual void StartAppearAnimation()
+        public virtual void StartAppearAnimation(AnimationType anim = AnimationType.Fast)
         {
             IsInTransaction = true;
             IsInputEnabled = false;
             TransitionProcessor.Appear(OnAppear);
         }
 
-        public virtual void StartDisappearAnimation()
+        public virtual void StartDisappearAnimation(AnimationType anim = AnimationType.Fast)
         {
             IsInTransaction = true;
             IsInputEnabled = false;
