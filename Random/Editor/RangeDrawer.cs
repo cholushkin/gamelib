@@ -2,10 +2,6 @@ using Unity.Mathematics;
 using UnityEngine;
 using UnityEditor;
 
-public class ShowAsRangeAttribute : PropertyAttribute
-{
-}
-
 [CustomPropertyDrawer(typeof(ShowAsRangeAttribute))]
 [CustomPropertyDrawer(typeof(int2))]
 [CustomPropertyDrawer(typeof(float2))]
