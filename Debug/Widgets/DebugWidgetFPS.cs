@@ -1,76 +1,117 @@
+using System;
 using UnityEngine;
 
 namespace GameLib
 {
     public class DebugWidgetLogFPS : DebugWidgetButton
     {
-        public enum Mode
-        {
-            Average,
-            Target
-        }
+        public enum Mode { Average, Target }
 
         public string AverageFormatString;
         public string TargetFormatString;
-        private const float fpsMeasurePeriod = 0.33f;  // Update FPS display every 0.33 seconds
-        private int _FPSAccumulator = 0;
-        private float _FPSNextPeriod;
+
+        private const float fpsMeasurePeriod = 0.33f;
+
+        private int _framesInWindow;
+        private float _windowStart;          // unscaled
         private int _currentFPS;
-        private float _lastFrameTimeMs;  // Store the last frame's duration in milliseconds
+        private float _lastFrameTimeMs;      // unscaled ms
         private Mode _mode;
+
+        [Serializable]
+        private struct Save { public Mode mode; }
 
         protected override void Awake()
         {
-            base.Awake();
-            _FPSNextPeriod = Time.realtimeSinceStartup + fpsMeasurePeriod;
-            Reset();  // Set initial text and color
+            base.Awake(); // base may call LoadState()
+            _windowStart = Time.realtimeSinceStartup; // unscaled baseline
+            RefreshView();
         }
 
-        public override void Reset()
+        protected override void Reset()
         {
             base.Reset();
             AverageFormatString = "FPS: {0} ({1} ms)";
-            TargetFormatString = "Target FPS: {0}";
-            SetText("FPS: -- (-- ms)", Color.white);  // Initial placeholder text
+            TargetFormatString = "Target: {0}";
+            _mode = Mode.Average;
+            SetText("FPS: -- (-- ms)", Color.white);
         }
 
-        public void ApplyState()
+        #region Persistence (from IDebugWidget)
+        public override object GetSaveState() => new Save { mode = _mode };
+
+        public override void SetSaveState(object state)
         {
-            SetText(
-                _mode == Mode.Average
-                    ? string.Format(AverageFormatString, _currentFPS, _lastFrameTimeMs.ToString("F1"))
-                    : string.Format(TargetFormatString, Application.targetFrameRate), GetTextColor());
+            // Base passes a JSON string (per your simplified approach)
+            if (state is string json && !string.IsNullOrEmpty(json))
+            {
+                var s = JsonUtility.FromJson<Save>(json);
+                _mode = s.mode;
+                RefreshView();
+            }
+        }
+        #endregion
+        
+
+        public void RefreshView()
+        {
+            if (_mode == Mode.Average)
+            {
+                SetText(
+                    string.Format(AverageFormatString, _currentFPS, _lastFrameTimeMs.ToString("F1")),
+                    GetTextColor());
+            }
+            else
+            {
+                SetText(string.Format(TargetFormatString, GetTargetFpsLabel()), GetTextColor());
+            }
         }
 
         protected override void ButtonPressHandler()
         {
-            if (_mode == Mode.Average)
-                _mode = Mode.Target;
-            else
-                _mode = Mode.Average;
+            _mode = (_mode == Mode.Average) ? Mode.Target : Mode.Average;
+            RefreshView();
         }
 
         public void Update()
         {
-            // Accumulate FPS data every frame
-            _FPSAccumulator++;
+            _framesInWindow++;
+            _lastFrameTimeMs = Time.unscaledDeltaTime * 1000f;
 
-            // Calculate the last frame's duration in milliseconds
-            _lastFrameTimeMs = Time.deltaTime * 1000.0f;  // Convert deltaTime to milliseconds
+            float now = Time.realtimeSinceStartup;
+            float elapsed = now - _windowStart; // unscaled seconds
 
-            // Update FPS at defined intervals (fpsMeasurePeriod)
-            if (Time.realtimeSinceStartup > _FPSNextPeriod)
+            if (elapsed >= fpsMeasurePeriod)
             {
-                // Calculate the average FPS for this period
-                _currentFPS = (int)(_FPSAccumulator / fpsMeasurePeriod);
+                // Average FPS over the *actual* elapsed time
+                _currentFPS = Mathf.RoundToInt(_framesInWindow / Mathf.Max(elapsed, 1e-6f));
 
-                // Reset accumulators
-                _FPSAccumulator = 0;
-                _FPSNextPeriod += fpsMeasurePeriod;
+                // Reset window
+                _framesInWindow = 0;
+                _windowStart = now;
 
-                // Update the text with the current FPS and last frame duration
-                ApplyState();
+                if (_mode == Mode.Average)
+                    RefreshView();
             }
+        }
+
+
+        // ---- Helpers ----
+
+        private static string GetTargetFpsLabel()
+        {
+            // If VSync is enabled, target frame rate is governed by vSyncCount and monitor refresh
+            // Application.targetFrameRate <= 0 means "platform default" unless VSync says otherwise.
+            int tf = Application.targetFrameRate;
+            int vs = QualitySettings.vSyncCount;
+
+            if (vs > 0 && tf <= 0)
+                return $"VSync x{vs} (monitor-limited)";
+
+            if (tf > 0)
+                return tf.ToString();
+
+            return "Platform default";
         }
     }
 }

@@ -12,7 +12,7 @@ namespace GameLib
             ApplyState();
         }
         
-        public override void Reset()
+        protected override void Reset()
         {
             base.Reset();
             FormatString = "Screen resolution: {0}x{1}";

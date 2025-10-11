@@ -11,8 +11,8 @@ namespace GameLib
             base.Awake();
             ApplyState();
         }
-        
-        public override void Reset()
+
+        protected override void Reset()
         {
             base.Reset();
             FormatString = "Application bundle ID: {0}";

@@ -12,7 +12,7 @@ namespace GameLib
             ApplyState();
         }
         
-        public override void Reset()
+        protected override void Reset()
         {
             base.Reset();
             FormatString = "C# Version: {0}";
