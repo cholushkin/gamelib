@@ -22,6 +22,15 @@ namespace GameLib.Random
         {
             _rng = new Unity.Mathematics.Random((uint)DateTime.Now.Ticks);
         }
+        
+        // Copy constructor — creates a new RNG with the same internal state as another
+        public Random(Random other)
+        {
+            if (other == null)
+                throw new ArgumentNullException(nameof(other));
+            
+            _rng = new Unity.Mathematics.Random(other._rng.state);
+        }
 
         public uint GetState() => _rng.state;
         
