@@ -1,11 +1,8 @@
 ﻿using UnityEngine;
 
-/// <summary>
-/// Author: CG-Tespy
-/// </summary>
-
-namespace CGTespy.UI
+namespace GameLib.GUI
 {
+    /// Author: CG-Tespy
     public static class RectTransformPresetApplyUtils
     {
         #region For converting text anchors to Vector2s

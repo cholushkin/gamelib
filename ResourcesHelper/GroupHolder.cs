@@ -1,8 +1,9 @@
 ﻿using System;
-using UnityEngine;
 using System.Collections.Generic;
-using GameLib.Log;
 using GameLib.Random;
+using Microsoft.Extensions.Logging;
+using ZLogger;
+using Logger = GameLib.Log.Logger;
 using Object = UnityEngine.Object;
 using Random = GameLib.Random.Random;
 
@@ -12,7 +13,7 @@ namespace ResourcesHelper
     public class GroupHolder<T> where T : Object
     {
         public T[] Objects;
-        public LogChecker LogChecker = new LogChecker(LogChecker.Level.Verbose);
+        public Logger Logger;
 
         Dictionary<string, T> _name2Obj;
 
@@ -37,16 +38,14 @@ namespace ResourcesHelper
             {
                 if (obj == null)
                 {
-                    if (LogChecker.Important())
-                        Debug.LogError("null in prefab list ");
+                    Logger.Instance().ZLog(Logger.Level(LogLevel.Error), $"Null in prefab list"); 
                     continue;
                 }
 
                 if (!_name2Obj.ContainsKey(obj.name))
                     _name2Obj.Add(obj.name, obj);
                 else
-                    if (LogChecker.Important())
-                        Debug.LogError("Duplicate prefab in prefab list " + obj.name);
+                    Logger.Instance().ZLog(Logger.Level(LogLevel.Error), $"Duplicate prefab in prefab list: '{obj.name}'");
             }
         }
     }

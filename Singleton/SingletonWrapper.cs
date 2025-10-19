@@ -1,11 +1,13 @@
-using GameLib.Log;
+using Microsoft.Extensions.Logging;
 using UnityEngine;
+using ZLogger;
+using Logger = GameLib.Log.Logger;
 
 namespace GameLib.Alg
 {
     public class SingletonWrapper<T> : MonoBehaviour where T : MonoBehaviour
     {
-        public LogChecker LogChecker;
+        public Logger Logger;
 
         public static T Instance { get; private set; }
 
@@ -14,20 +16,20 @@ namespace GameLib.Alg
             T target = GetComponent<T>();
             if (target == null)
             {
-                LogChecker?.PrintError(LogChecker.Level.Important, () =>
+                Logger.Instance().ZLog(Logger.Level(LogLevel.Error),
                     $"SingletonWrapper<{typeof(T)}> could not find component of type {typeof(T)} on {transform.GetDebugName()}");
                 return;
             }
 
             if (Instance != null && Instance != target)
             {
-                LogChecker?.PrintError(LogChecker.Level.Important, () =>
+                Logger.Instance().ZLog(Logger.Level(LogLevel.Error),
                     $"Duplicate SingletonWrapper<{typeof(T)}> on {transform.GetDebugName()}.\nFirst instance: '{Instance.transform.GetDebugName()}'");
                 return;
             }
 
             Instance = target;
-            LogChecker?.Print(LogChecker.Level.Verbose, () =>
+            Logger.Instance().ZLog(Logger.Level(LogLevel.Debug),
                 $"SingletonWrapper<{typeof(T)}> assigned. Target:{target.transform.GetDebugName()}, Wrapper:{transform.GetDebugName()}");
         }
 

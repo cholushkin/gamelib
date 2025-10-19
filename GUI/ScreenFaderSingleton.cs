@@ -1,7 +1,7 @@
 ﻿using DG.Tweening;
 using GameLib.Alg;
 
-namespace GameLib
+namespace GameLib.GUI
 {
     public class ScreenFaderSingleton : Singleton<ScreenFaderSingleton>
     {

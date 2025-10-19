@@ -7,7 +7,9 @@
         "Unity.TextMeshPro",
         "Unity.InputSystem",
         "Unity.Mathematics",
-        "VitalRouter"
+        "VitalRouter",
+        "ZLogger.Unity",
+        "UniTask"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

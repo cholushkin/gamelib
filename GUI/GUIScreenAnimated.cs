@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace GameGUI
+namespace GameLib.GUI
 {
     public class GUIScreenAnimated : GUIScreenBase
     {

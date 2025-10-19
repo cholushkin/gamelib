@@ -2,7 +2,8 @@
 using GameLib.Alg;
 using UnityEngine;
 using UnityEngine.Assertions;
-using GameLib.Log;
+using Microsoft.Extensions.Logging;
+using ZLogger;
 
 namespace GameLib
 {
@@ -40,7 +41,7 @@ namespace GameLib
         protected override void Awake()
         {
             base.Awake();
-            LogChecker.Print(LogChecker.Level.Verbose, $"AppStates available {transform.childCount}");
+            Logger.Instance().ZLog(Logger.Level(LogLevel.Information), $"AppStates available {transform.childCount}");
 
             _ownedStates = new IAppState[transform.childCount];
             for (int i = 0; i < transform.childCount; ++i)
@@ -58,8 +59,7 @@ namespace GameLib
         {
             if (StartState == null)
             {
-                LogChecker.PrintWarning(LogChecker.Level.Normal,
-                    $"The AppStateManager on {gameObject.name} has no starting state.");
+                Logger.Instance().ZLog(Logger.Level(LogLevel.Information), $"The AppStateManager on {gameObject.name} has no starting state.");
                 return;
             }
 
@@ -70,16 +70,14 @@ namespace GameLib
         {
             if (!typeof(IAppState).IsAssignableFrom(typeof(T)))
             {
-                LogChecker.PrintError(LogChecker.Level.Important,
-                    $"AppStateManager: {typeof(T).Name} does not implement IAppState");
+                Logger.Instance().ZLog(Logger.Level(LogLevel.Error), $"AppStateManager: {typeof(T).Name} does not implement IAppState");
                 return;
             }
 
             var state = _ownedStates.FirstOrDefault(t => t.GetType() == typeof(T));
             if (null == state)
             {
-                LogChecker.PrintError(LogChecker.Level.Important,
-                    $"AppStateManager: {transform.GetDebugName()} doesn't own the state {typeof(T).Name}");
+                Logger.Instance().ZLog(Logger.Level(LogLevel.Error), $"AppStateManager: {transform.GetDebugName()} doesn't own the state {typeof(T).Name}");
                 return;
             }
 
@@ -88,14 +86,13 @@ namespace GameLib
 
         public void Start(IAppState state)
         {
-            LogChecker.Print(LogChecker.Level.Verbose, $"Starting state '{state?.GetName()}'");
+            Logger.Instance().ZLog(Logger.Level(LogLevel.Information), $"Starting state '{state?.GetName()}'");
             if (_currenState != null && _currenState == state)
-                LogChecker.PrintWarning(LogChecker.Level.Verbose, "Restarting same state");
+                Logger.Instance().ZLog(Logger.Level(LogLevel.Warning), $"Restarting same state '{state?.GetName()}'");
 
             var nextState = _ownedStates.FirstOrDefault(s => s == state);
             if (nextState == null && state != null)
-                LogChecker.PrintError(LogChecker.Level.Important,
-                    $"AppStateManager: {transform.GetDebugName()} doesn't own the state {state.GetName()}");
+                Logger.Instance().ZLog(Logger.Level(LogLevel.Error), $"AppStateManager: {transform.GetDebugName()} doesn't own the state {state.GetName()}");
 
             // Hope StateLeave won't call Start
             _currenState?.AppStateLeave();
@@ -107,7 +104,7 @@ namespace GameLib
         [ContextMenu("DbgPrintCurrentState")]
         void DbgPrintCurrentState()
         {
-            LogChecker.Print($"Current state:{GetCurrentState()}, prev state:{GetPreviousState()}");
+            Logger.Instance().ZLog(Logger.Level(LogLevel.Information), $"Current state:{GetCurrentState()}, prev state:{GetPreviousState()}");
         }
 
         public IAppState GetCurrentState()

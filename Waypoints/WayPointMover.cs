@@ -1,7 +1,10 @@
 ﻿using DG.Tweening;
 using GameLib.Log;
+using Microsoft.Extensions.Logging;
 using UnityEngine;
 using UnityEngine.Assertions;
+using ZLogger;
+using Logger = GameLib.Log.Logger;
 
 namespace GameLib
 {
@@ -28,7 +31,7 @@ namespace GameLib
         public bool UseGlobalCoord;
 
 
-        public LogChecker Log;
+        public Logger Logger;
 
         private StateMachineImmediate<PlayState> _stateMachine;
         private Tweener _transitionTween;
@@ -102,8 +105,7 @@ namespace GameLib
 
         void StartMove(WayPoint to, WayPoint.MovingRule movingRule /*, BezierSpline trajectory = null*/)
         {
-            if (Log.Normal())
-                Debug.Log("StartMove to: " + to?.name + ". Moving rule: " + movingRule);
+            Logger.Instance().ZLog(Logger.Level(LogLevel.Information), $"StartMove to: '{to?.name}'. Moving rule: '{movingRule}'");
 
             // kill previous tweens
             _transitionTween?.Kill();

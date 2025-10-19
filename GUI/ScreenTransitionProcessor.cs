@@ -1,81 +1,85 @@
 ﻿using DG.Tweening;
 using UnityEngine;
 
-public class ScreenTransitionProcessor : MonoBehaviour
+namespace GameLib.GUI
 {
-    [Tooltip("if null just use time delay for transition end up")]
-    public CanvasGroup CanvasGroup;
-    public float Duration;
-    public Ease ToColorEase;
-    public Ease ToTransparentEase;
-    private Sequence _transitionSequence;
-
-    void Reset()
+    public class ScreenTransitionProcessor : MonoBehaviour
     {
-        Duration = 0.2f;
-        ToColorEase = Ease.InSine;
-        ToTransparentEase = Ease.OutSine;
-    }
+        [Tooltip("if null just use time delay for transition end up")]
+        public CanvasGroup CanvasGroup;
 
-    public void Appear(TweenCallback appearCallback, bool isInstant = false)
-    {
-        if (isInstant)
+        public float Duration;
+        public Ease ToColorEase;
+        public Ease ToTransparentEase;
+        private Sequence _transitionSequence;
+
+        void Reset()
         {
-            if(CanvasGroup)
-                CanvasGroup.alpha = 1f;
-            appearCallback?.Invoke();
-            return;
+            Duration = 0.2f;
+            ToColorEase = Ease.InSine;
+            ToTransparentEase = Ease.OutSine;
         }
 
-        if (CanvasGroup)
+        public void Appear(TweenCallback appearCallback, bool isInstant = false)
         {
-            CanvasGroup.DOFade(1f, Duration)
-                .OnComplete(appearCallback)
-                .SetUpdate(UpdateType.Normal, true)
-                .SetEase(ToColorEase);
-        }
-        else
-        {
-            DOTween.Kill(_transitionSequence);
-            _transitionSequence = DOTween.Sequence().AppendInterval(Duration).OnComplete(appearCallback);
-            _transitionSequence.Play();
-        }
-    }
+            if (isInstant)
+            {
+                if (CanvasGroup)
+                    CanvasGroup.alpha = 1f;
+                appearCallback?.Invoke();
+                return;
+            }
 
-    public void Disappear(TweenCallback disappearCallback, bool isInstant = false)
-    {
-        if(isInstant)
-        {
             if (CanvasGroup)
-                CanvasGroup.alpha = 0f;
-            disappearCallback?.Invoke();
-            return;
+            {
+                CanvasGroup.DOFade(1f, Duration)
+                    .OnComplete(appearCallback)
+                    .SetUpdate(UpdateType.Normal, true)
+                    .SetEase(ToColorEase);
+            }
+            else
+            {
+                DOTween.Kill(_transitionSequence);
+                _transitionSequence = DOTween.Sequence().AppendInterval(Duration).OnComplete(appearCallback);
+                _transitionSequence.Play();
+            }
         }
 
-        if (CanvasGroup)
+        public void Disappear(TweenCallback disappearCallback, bool isInstant = false)
         {
-            CanvasGroup.DOFade(0f, Duration)
-                .OnComplete(disappearCallback)
-                .SetUpdate(UpdateType.Normal, true)
-                .SetEase(ToTransparentEase);
+            if (isInstant)
+            {
+                if (CanvasGroup)
+                    CanvasGroup.alpha = 0f;
+                disappearCallback?.Invoke();
+                return;
+            }
+
+            if (CanvasGroup)
+            {
+                CanvasGroup.DOFade(0f, Duration)
+                    .OnComplete(disappearCallback)
+                    .SetUpdate(UpdateType.Normal, true)
+                    .SetEase(ToTransparentEase);
+            }
+            else
+            {
+                DOTween.Kill(_transitionSequence);
+                _transitionSequence = DOTween.Sequence().AppendInterval(Duration).OnComplete(disappearCallback);
+                _transitionSequence.Play();
+            }
         }
-        else
+
+        public void SetBlockInput(bool flag)
         {
-            DOTween.Kill(_transitionSequence);
-            _transitionSequence = DOTween.Sequence().AppendInterval(Duration).OnComplete(disappearCallback);
-            _transitionSequence.Play();
+            CanvasGroup.interactable = !flag;
+            CanvasGroup.blocksRaycasts = !flag;
         }
-    }
 
-    public void SetBlockInput(bool flag)
-    {
-        CanvasGroup.interactable = !flag;
-        CanvasGroup.blocksRaycasts = !flag;
-    }
-
-    public void SetClearState()
-    {
-        CanvasGroup.alpha = 0f;
-        SetBlockInput(false);
+        public void SetClearState()
+        {
+            CanvasGroup.alpha = 0f;
+            SetBlockInput(false);
+        }
     }
 }

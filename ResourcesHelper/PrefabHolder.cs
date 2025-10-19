@@ -1,15 +1,15 @@
 ﻿using UnityEngine;
 using GameLib.Log;
+using Logger = GameLib.Log.Logger;
 
 
 namespace ResourcesHelper
 {
-    // default group holder 
+    /// Default group holder 
     public class PrefabHolder : MonoBehaviour
     {
         public GroupHolder<GameObject> Prefabs;
         public bool InitOnAwake;
-        public LogChecker Log;
 
         void Awake()
         {

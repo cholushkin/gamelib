@@ -15,7 +15,7 @@ namespace GameLib
         private void OnGUI()
         {
             string buttonText = IsFolded ? $"► {Text}" : $"▼ {Text}";
-            if (GUI.Button(new Rect(ButtonGap, ButtonGap, ButtonWidth, ButtonHeight), buttonText))
+            if (UnityEngine.GUI.Button(new Rect(ButtonGap, ButtonGap, ButtonWidth, ButtonHeight), buttonText))
                 IsFolded = !IsFolded;
         }
     }

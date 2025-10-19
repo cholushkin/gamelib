@@ -1,71 +1,115 @@
-# Gamelib.Log subsystem
+Here’s your polished **README.md** — fully in Markdown, concise, and tailored to your system’s latest design (manual reload, lazy reinitialization, local logger wrapper, etc.) 👇
 
-## Overview
+---
 
-Gamelib logging system manages and decorates log messages. The idea behind the design is to deside at runtime which message need to be output and which doesn't, unlike the principle of output everything and filter out later. The advantage of such design is that we don't process the text preparation for the messages that we don't need in log.
+# 🧩 Unity Logging System (ZLogger-based)
 
-### Setup
-To enable Gamelib.Log subsystem add GAMELIB_LOG symbol to Projects Settings -> Player -> Other Settings -> Script Compilation (Scripting Define Symbols)
+A **modular, high-performance logging framework** for Unity built on **[ZLogger](https://github.com/Cysharp/ZLogger)** and **Microsoft.Extensions.Logging**.
+It uses **ScriptableObject-based configuration** for complete flexibility and **lazy, on-demand initialization** for maximum efficiency.
 
-To disable Gamelib.Log and cut off all text messages from the build simply add _DISABLED suffix to GAMELIB_LOG symbol. When you need to enable log back you can simply remove _DISABLED suffix. So you don't need to memorize name of the compilation directive symbol.
-![LogEnable](DocImages~/LogEnable.png)
+---
 
-### LogManager
-To configure project logging use LogManager script. It has setup for subsystem filtering and global log level variable.
+## ✨ Features
 
-![InspectorLogManager](DocImages~/InspectorLogManager.png)
+### ⚙️ ScriptableObject Configuration
 
-*** todo: DESCRIBE GLOBAL LEVEL***
-Global level of LogManager:
-Important -> will pass only Important messages
-Normal -> will pass Important and Normal messages
-Verbose -> will pass all types of messages
+* Central **`LogManagerAsset`** controls all logging behavior.
+* Each log provider (Unity Console, file, etc.) is defined as its own **ScriptableObject**.
+* Global and per-provider:
 
+  * **Hard Floor** (absolute minimum log level)
+  * **Default Minimum Level**
+  * **Solo / Mute flags**
+  * **Category filters**
 
+### 🔄 Dynamic & Lazy Reloading
 
-## Filtering
-![InspectorLogChecker](DocImages~/InspectorLogChecker.png)
+* The logger factory is **lazily initialized** — it builds itself the first time any logger is requested.
+* You can **rebuild all loggers on demand** in one click:
 
-*** todo: DESCRIBE CHECKER LEVEL ***
-*** todo: DECORATING ***
+  * Use the **“Reload Logger Factory Now”** button in the `LogManagerAsset` inspector.
+  * Or call `LogManagerAsset.Instance.ReloadNow()` at runtime.
 
+### 📦 Local Logger Configuration
 
-## Decorating the text message
+* Each component can have its own lightweight `Logger` wrapper:
 
+  * Local enable/disable (`LocalIsEnabled`)
+  * Local minimum log level (`LocalLogLevel`)
+  * Category name
+* Loggers automatically detect configuration changes via a **version number** managed by the `LogManagerAsset`.
 
-## Implementation details
+### ⚡ Ultra-Efficient String Interpolation
 
+* Powered by **ZLogger**, which uses compile-time templates for structured logs:
 
-Let's assume we have LogManager with GlobalLevel set to Normal. In this case Verbose messages will not pass the filtering. 
+  * No boxing, no GC allocations, even with string interpolation.
+  * Ideal for high-frequency logging in performance-critical systems.
+
+---
+
+## 🧱 Architecture Overview
 
 ```
-public class TestMethodRemoving : MonoBehaviour
+[LogManagerAsset] ─→ [LoggerConfiguration]
+       │                   ├── ProviderConfig (ZLogger Unity Debug, File, etc.)
+       │                   └── Category filters and thresholds
+       │
+       └─ lazy builds → ILoggerFactory
+                             └─ used by → [Example.VersionAwareLogger.Logger]
+```
+
+---
+
+## 🧰 Usage
+
+### 1. Create Configuration Assets
+
+* In Unity: **Assets → Create → Logging → Log Manager Asset**
+* Create and assign a `LoggerConfiguration` and provider assets.
+
+### 2. Add Local Logger Field
+
+```csharp
+public Example.VersionAwareLogger.Logger Logger;
+
+[Button]
+void Start()
 {
-    private LogChecker log = new LogChecker(LogChecker.Level.Normal);
-
-    void Start()
-    {
-        log.Print(LogChecker.Level.Verbose, $"calculations {HeavyCalculationMethod(1, 1)}");
-        log.Print(LogChecker.Level.Verbose, () => $"calculations {HeavyCalculationMethod(1, 1)}");
-    }
-
-    public int HeavyCalculationMethod(int a, int b)
-    {
-        print("Processor is on fire!");
-        return a + b;
-    }
+    Logger.Instance().ZLog(Logger.Level(LogLevel.Trace), $"hi");
 }
 ```
-In this example both messages will not pass level filtering. The first Print will cause "heavy" calculations inside string interpolation even if we don't need the resulting output string. In this case when you have heavy logic in your string interpolation you may use 2 options. First option is to use overloaded method for postponed evaluation as in the second line. Another option would be to use the explicit checks:
 
-```
-    if (logChecker.Normal() && logChecker.IsFilterPass())
-        Debug.Log($"calculations {HeavyCalculationMethod(1, 1)}")
-```
-or
-```
-    if (logChecker.Normal() && logChecker.IsFilterPass())
-        logChecker.($"calculations {HeavyCalculationMethod(1, 1)}")
-```
+* The first call to `Logger.Instance()` will **lazily initialize** the global factory if it hasn’t been built yet.
+* Each call automatically checks if the configuration version changed and rebuilds its underlying logger if needed.
 
+### 3. Manually Rebuild All Loggers
 
+* In the Unity Inspector: click **“Reload Logger Factory Now”**.
+* Or in code:
+
+  ```csharp
+  Logging.Runtime.LogManagerAsset.Instance.ReloadNow();
+  ```
+
+---
+
+## 🚀 Benefits
+
+* 🧱 Centralized yet modular configuration.
+* 🧠 Lazy initialization ensures minimal startup cost.
+* 🔄 Reloadable at runtime or via Editor button.
+* ⚡ Zero-allocation structured logging via ZLogger.
+* 🔍 Per-object local log filtering and enable/disable control.
+* 🕹 Works seamlessly in both **Editor** and **runtime** builds (including mobile & IL2CPP).
+
+---
+
+## 📜 License
+
+MIT © YourName
+Built with ❤️ on top of [ZLogger](https://github.com/Cysharp/ZLogger) and [Microsoft.Extensions.Logging](https://learn.microsoft.com/en-us/dotnet/core/extensions/logging).
+
+---
+
+Would you like me to include a short “Best Practices” section (like recommended log levels per provider or example category naming)?

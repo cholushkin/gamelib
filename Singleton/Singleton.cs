@@ -1,11 +1,14 @@
 using GameLib.Log;
+using Microsoft.Extensions.Logging;
 using UnityEngine;
+using ZLogger;
+using Logger = GameLib.Log.Logger;
 
 namespace GameLib.Alg
 {
     public class Singleton<T> : MonoBehaviour where T : Singleton<T>
     {
-        public LogChecker LogChecker;
+        public Logger Logger;
 
         public static T Instance { get; private set; }
 
@@ -28,11 +31,11 @@ namespace GameLib.Alg
             // Found second instance
             if (Instance != null && Instance != this)
             {
-                LogChecker.PrintError(LogChecker.Level.Important, () => $"Got a second instance of the class {GetType()} {transform.GetDebugName()}");
-                LogChecker.PrintError(LogChecker.Level.Important, () => $"First instance: '{Instance.transform.GetDebugName()}'");
+                Logger.Instance().ZLog(Logger.Level(LogLevel.Warning), $"Got a second instance of the class {GetType()} {transform.GetDebugName()}");
+                Logger.Instance().ZLog(Logger.Level(LogLevel.Warning), $"First instance: '{Instance.transform.GetDebugName()}'");
             }
 
-            LogChecker.Print(LogChecker.Level.Verbose, () => $"Singleton instance assigning. Type:{GetType()}, Transform:{transform.GetDebugName()}");
+            Logger.Instance().ZLog(Logger.Level(LogLevel.Information), $"Singleton instance assigning. Type:{GetType()}, Transform:{transform.GetDebugName()}");
             AssignInstance();
         }
     }

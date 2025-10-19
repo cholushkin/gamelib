@@ -18,7 +18,7 @@ namespace GameLib
             
             if (_leftAlignedButtonStyle == null)
             {
-                _leftAlignedButtonStyle = new GUIStyle(GUI.skin.button);
+                _leftAlignedButtonStyle = new GUIStyle(UnityEngine.GUI.skin.button);
                 _leftAlignedButtonStyle.alignment = TextAnchor.MiddleLeft;
                 _leftAlignedButtonStyle.padding = new RectOffset(10, 10, 0, 0); // Optional: padding from left
             }
@@ -26,7 +26,7 @@ namespace GameLib
             float x = ButtonGap;
             float y = ButtonGap + (ButtonHeight + ButtonGap) * ButtonIndex;
             var keyboardActivator = GetComponent<OverlayActivatorKeyboard>();
-            if (GUI.Button(
+            if (UnityEngine.GUI.Button(
                     new Rect(x, y, ButtonWidth, ButtonHeight),
                     keyboardActivator ? $"{keyboardActivator.Keys[0]}: {Overlay.name}" : $"{Overlay.name}",
                     _leftAlignedButtonStyle))

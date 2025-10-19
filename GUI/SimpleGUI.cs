@@ -1,14 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using GameLib;
-using GameLib.Log;
+using Microsoft.Extensions.Logging;
 using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.Serialization;
 using VitalRouter;
+using ZLogger;
+using Logger = GameLib.Log.Logger;
 
-namespace GameGUI
+namespace GameLib.GUI
 {
     [ScriptExecutionOrder(-8)]
     public class SimpleGUI : MonoBehaviour
@@ -23,7 +24,7 @@ namespace GameGUI
         
         [FormerlySerializedAs("Screens")] [Tooltip("Screens to use for creating new screens on demand. If not specified, all screens must be present in the scene")]
         public GUIScreenBase[] ScreenPrefabs;
-        public LogChecker Log;
+        public Logger Logger;
         
 
         private readonly Stack<GUIScreenBase> _screenStack = new Stack<GUIScreenBase>(); // note: _screenStack is a logical representation, and the hierarchy is current state of the screens
@@ -50,24 +51,19 @@ namespace GameGUI
             if (string.IsNullOrEmpty(StartingScreenName))
                 return;
             
-            if (Log.Normal())
-                Debug.LogFormat("Activating starting screen {0}", StartingScreenName);
+            Logger.Instance().ZLog(Logger.Level(LogLevel.Information), $"Activating starting screen {StartingScreenName}");
             
             PushScreen(StartingScreenName);
         }
 
 
-        // return current active screen
+        /// Return current active screen
         public GUIScreenBase GetCurrentScreen()
         {
             if (_screenStack.Count == 0)
                 return null;
             return _screenStack.Peek();
         }
-
-        // todo:
-        // public int PopScreenUntil(string untilScreen)
-
 
         public int PopAll()
         {
@@ -80,7 +76,7 @@ namespace GameGUI
             return count;
         }
 
-        // pops current screen and returns it
+        /// Pop current screen and returns it
         public GUIScreenBase PopTopScreen(string expectedScreenOnTop = null)
         {
             var screenOnTop = GetCurrentScreen();
@@ -139,8 +135,6 @@ namespace GameGUI
 
             return targetScreen;
         }
-
-
 
         internal void OnScreenPopped(GUIScreenBase screen)
         {

@@ -1,21 +1,26 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-public class TouchPropagator : MonoBehaviour, IDragHandler, IEndDragHandler, IBeginDragHandler
+
+namespace GameLib.GUI
 {
-    public GameObject PropagateTo;
-    public void OnDrag(PointerEventData eventData)
+    public class TouchPropagator : MonoBehaviour, IDragHandler, IEndDragHandler, IBeginDragHandler
     {
-        PropagateTo.SendMessage("OnDrag", eventData, SendMessageOptions.DontRequireReceiver);
-    }
+        public GameObject PropagateTo;
 
-    public void OnEndDrag(PointerEventData eventData)
-    {
-        PropagateTo.SendMessage("OnEndDrag", eventData, SendMessageOptions.DontRequireReceiver);
-    }
+        public void OnDrag(PointerEventData eventData)
+        {
+            PropagateTo.SendMessage("OnDrag", eventData, SendMessageOptions.DontRequireReceiver);
+        }
 
-    public void OnBeginDrag(PointerEventData eventData)
-    {
-        PropagateTo.SendMessage("OnBeginDrag", eventData, SendMessageOptions.DontRequireReceiver);
+        public void OnEndDrag(PointerEventData eventData)
+        {
+            PropagateTo.SendMessage("OnEndDrag", eventData, SendMessageOptions.DontRequireReceiver);
+        }
+
+        public void OnBeginDrag(PointerEventData eventData)
+        {
+            PropagateTo.SendMessage("OnBeginDrag", eventData, SendMessageOptions.DontRequireReceiver);
+        }
     }
 }

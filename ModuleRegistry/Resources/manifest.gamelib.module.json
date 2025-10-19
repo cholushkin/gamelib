@@ -1,0 +1,7 @@
+{
+  "Name": "GameLib",
+  "Version": "1.0.0",
+  "IconResource": "gamelib-logo.png",
+  "Description": "Generic purpose gamedev library.",
+  "Tags": ["lib", "generic"]
+}
