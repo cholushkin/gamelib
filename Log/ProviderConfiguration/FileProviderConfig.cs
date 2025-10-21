@@ -4,7 +4,7 @@ using ZLogger.Providers;
 
 namespace GameLib.Log
 {
-    [UnityEngine.CreateAssetMenu(menuName = "Logging/Providers/File")]
+    [UnityEngine.CreateAssetMenu(menuName = "GameLib/Log/FileLoggerConfig")]
     public class FileLoggerConfig 
         : LoggerProviderConfigBase<ZLoggerFileLoggerProvider>
     {

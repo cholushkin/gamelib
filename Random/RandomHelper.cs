@@ -58,16 +58,27 @@ namespace GameLib.Random
     /// Provides a variety of utility methods for working with randomness using custom Random class.
     public static class RandomHelper
     {
-        // A default random number generator initialized with the current time.
+        /// A default random number generator initialized with the current time.
         public static readonly Random Rng = CreateRandomNumberGenerator(out _);
         
+        /// Creates a new random number generator and outputs the seed used.
         public static Random CreateRandomNumberGenerator( out uint seed )
         {
             seed = (uint)DateTime.Now.Ticks;
             return new Random(seed);
         }
 
+        /// Creates a new random number generator initialized with the given seed.
         public static Random CreateRandomNumberGenerator(uint seed) => new(seed);
+        
+        /// Creates a new random number generator using the provided seed reference.
+        /// If the seed is zero, a new seed is generated from the current time and updated in the reference. (so you can expose it to the inspector)
+        public static Random CreateSeededRandomNumberGenerator(ref uint seed)
+        {
+            return seed == 0 
+                ? CreateRandomNumberGenerator(out seed) 
+                : CreateRandomNumberGenerator(seed);
+        }
 
         #region Values
         
@@ -232,21 +243,45 @@ namespace GameLib.Random
         }
 
         // Selects an event index based on a set of probabilities.
-        public static int SpawnEvent(this Random rng, float[] probabilities)
+        public static int SpawnEvent(this Random rng, IReadOnlyList<float> probabilities)
         {
-            var totalProbability = probabilities.Sum();
-            if (totalProbability <= 0) return -1;
+            if (probabilities == null || probabilities.Count == 0)
+                return -1;
 
-            var randomValue = rng.ValueFloat() * totalProbability;
+            float totalProbability = 0f;
+            for (int i = 0; i < probabilities.Count; i++)
+                totalProbability += probabilities[i];
 
-            for (int i = 0; i < probabilities.Length; ++i)
+            if (totalProbability <= 0f)
+                return -1;
+
+            float randomValue = rng.ValueFloat() * totalProbability;
+
+            for (int i = 0; i < probabilities.Count; i++)
             {
                 randomValue -= probabilities[i];
-                if (randomValue < 0) return i;
+                if (randomValue < 0f)
+                    return i;
             }
 
-            return -1;
+            // Floating-point fallback
+            return probabilities.Count - 1;
         }
+        
+        public static T SpawnEvent<T>(
+            this Random rng,
+            IReadOnlyList<T> items,
+            IReadOnlyList<float> probabilities)
+        {
+            if (items == null || probabilities == null)
+                throw new ArgumentNullException();
+            if (items.Count != probabilities.Count)
+                throw new ArgumentException("Items and probabilities must have the same length.");
+
+            int index = rng.SpawnEvent(probabilities);
+            return index >= 0 ? items[index] : default;
+        }
+
 
         public static bool YesNo(this Random rng) => rng.ValueFloat() < 0.5f;
 

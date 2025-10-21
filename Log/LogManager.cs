@@ -13,11 +13,11 @@ using UnityEditor;
 
 namespace GameLib.Log
 {
-    [CreateAssetMenu(fileName = "LogManager", menuName = "GameLib/Log/Log Manager Asset")]
-    public class LogManagerAsset : ScriptableObject
+    [CreateAssetMenu(fileName = "LogManager", menuName = "GameLib/Log/LogManager")]
+    public class LogManager : ScriptableObject
     {
         /// Singleton instance
-        private static LogManagerAsset _instance;
+        private static LogManager _instance;
 
         /// Backing field + public getter
         private static int _configVersion;
@@ -47,18 +47,22 @@ namespace GameLib.Log
             Volatile.Write(ref _configVersion, 0);
         }
 
-        public static LogManagerAsset Instance
+        public static LogManager Instance
         {
             get
             {
                 if (_instance == null)
                 {
-                    _instance = Resources.Load<LogManagerAsset>("LogManagerAsset");
+                    _instance = Resources.Load<LogManager>("LogManager");
 
                     if (_instance == null)
                     {
-                        Debug.LogWarning("[LogManagerAsset] No asset found in Resources. Using fallback Unity Console logger.");
-                        _instance = CreateInstance<LogManagerAsset>();
+                        Debug.LogWarning("[LogManager] No asset found in Resources. " +
+                                         "This is a ScriptableObject singleton. " +
+                                         "Please ensure a 'LogManager' exists in a Resources folder. " +
+                                         "Using fallback Unity Console logger.");
+                
+                        _instance = CreateInstance<LogManager>();
                         _instance._loggerFactory = CreateFallbackUnityConsoleFactory();
                         BumpVersion();
                         return _instance;
@@ -73,6 +77,7 @@ namespace GameLib.Log
                 return _instance;
             }
         }
+
 
         /// Rebuild the logger factory NOW, bump ConfigVersion
         [Button("Reload loggers and factory in memory")]
@@ -116,7 +121,8 @@ namespace GameLib.Log
                 return;
             }
 
-            Debug.Log($"[LogManagerAsset] Initializing logger factory using config: {config?.name ?? "<none>"}");
+            Debug.Log($"[LogManagerAsset] Initializing logger factory using config: {(config != null ? config.name : "<none>")}");
+
 
             _loggerFactory = LoggerFactory.Create(builder =>
             {

@@ -16,7 +16,7 @@ namespace GameLib.Log
         public string CategoryName = "";
         public LogLevel LocalLogLevel = LogLevel.Information;
 
-        protected ILogger? _logger;
+        protected ILogger _logger;
 
 
         // Version the cached _logger was resolved against.
@@ -26,12 +26,12 @@ namespace GameLib.Log
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected ILogger LazyGetInstance()
         {
-            int current = LogManagerAsset.ConfigVersion;
+            int current = LogManager.ConfigVersion;
 
             if (_logger == null || _resolvedVersion != current)
             {
                 // Acquire a fresh logger from the current factory
-                _logger = LogManagerAsset.Instance.CreateLogger(CategoryName ?? string.Empty);
+                _logger = LogManager.Instance.CreateLogger(CategoryName ?? string.Empty);
                 _resolvedVersion = current;
             }
 

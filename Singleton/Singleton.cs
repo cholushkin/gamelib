@@ -35,7 +35,7 @@ namespace GameLib.Alg
                 Logger.Instance().ZLog(Logger.Level(LogLevel.Warning), $"First instance: '{Instance.transform.GetDebugName()}'");
             }
 
-            Logger.Instance().ZLog(Logger.Level(LogLevel.Information), $"Singleton instance assigning. Type:{GetType()}, Transform:{transform.GetDebugName()}");
+            Logger.Instance().ZLog(Logger.Level(LogLevel.Debug), $"Singleton instance assigning. Type:{GetType()}, Transform:{transform.GetDebugName()}");
             AssignInstance();
         }
     }

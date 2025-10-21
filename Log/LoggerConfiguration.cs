@@ -34,7 +34,7 @@ namespace GameLib.Log
     AddFilter is final for that scope. SetMinimumLevel is a fallback.
     */
 
-    [CreateAssetMenu(fileName = "LoggerConfiguration", menuName = "Logging/Logger Configuration")]
+    [CreateAssetMenu(fileName = "LoggerConfiguration", menuName = "GameLib/Log/Logger Configuration")]
     public class LoggerConfiguration : ScriptableObject
     {
         [Serializable]
