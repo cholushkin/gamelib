@@ -11,16 +11,22 @@ namespace GameLib.Random
     {
         internal Unity.Mathematics.Random _rng;
 
-        // Constructor to initialize with a seed
-        public Random(uint seed)
+        // Constructor: from explicit state (non-zero)
+        public Random(uint state)
         {
-            _rng = new Unity.Mathematics.Random(seed);
+            if (state == 0) 
+                throw new ArgumentException("State must be non-zero.", nameof(state));
+            // Unity.Mathematics.Random(uint) scrambles seeds; we want exact state.
+            // So: construct with any non-zero, then set state directly.
+            _rng = new Unity.Mathematics.Random(1);
+            _rng.state = state;
         }
 
-        // Constructor using current time as seed
+        // Constructor: from current time (derived, non-zero)
         public Random()
         {
-            _rng = new Unity.Mathematics.Random((uint)DateTime.Now.Ticks);
+            _rng = new Unity.Mathematics.Random(1);
+            _rng.state = RandomHelper.MakeNonZeroState((uint)DateTime.UtcNow.Ticks);
         }
         
         // Copy constructor — creates a new RNG with the same internal state as another
@@ -29,7 +35,8 @@ namespace GameLib.Random
             if (other == null)
                 throw new ArgumentNullException(nameof(other));
             
-            _rng = new Unity.Mathematics.Random(other._rng.state);
+            _rng = new Unity.Mathematics.Random(1);
+            _rng.state = other._rng.state;
         }
 
         public uint GetState() => _rng.state;
@@ -61,23 +68,37 @@ namespace GameLib.Random
         /// A default random number generator initialized with the current time.
         public static readonly Random Rng = CreateRandomNumberGenerator(out _);
         
-        /// Creates a new random number generator and outputs the seed used.
-        public static Random CreateRandomNumberGenerator( out uint seed )
+        /// Creates a new RNG initialized with a state derived from current time.
+        public static Random CreateRandomNumberGenerator(out uint state)
         {
-            seed = (uint)DateTime.Now.Ticks;
-            return new Random(seed);
+            state = MakeNonZeroState((uint)DateTime.UtcNow.Ticks);
+            return new Random(state); // exact state == state
         }
 
-        /// Creates a new random number generator initialized with the given seed.
-        public static Random CreateRandomNumberGenerator(uint seed) => new(seed);
-        
-        /// Creates a new random number generator using the provided seed reference.
-        /// If the seed is zero, a new seed is generated from the current time and updated in the reference. (so you can expose it to the inspector)
-        public static Random CreateSeededRandomNumberGenerator(ref uint seed)
+        /// Creates a new RNG initialized directly with a given non-zero state.
+        public static Random CreateRandomNumberGenerator(uint state)
         {
-            return seed == 0 
-                ? CreateRandomNumberGenerator(out seed) 
-                : CreateRandomNumberGenerator(seed);
+            if (state == 0) 
+                throw new ArgumentException("State must be non-zero.", nameof(state));
+            return new Random(state); // exact state == state
+        }
+
+        /// Creates a new RNG using the provided state reference.
+        /// If state is zero, generate a time-based non-zero state and write it back.
+        public static Random CreateStatefulRandomNumberGenerator(ref uint state)
+        {
+            if (state == 0)
+                state = MakeNonZeroState((uint)DateTime.UtcNow.Ticks);
+            return new Random(state); // exact state == state
+        }
+
+        /// Ensures the RNG state is never zero (invalid for Unity.Mathematics.Random).
+        internal static uint MakeNonZeroState(uint raw)
+        {
+            // cheap bit-mix so time-based inputs aren’t too correlated
+            uint state = raw ^ (raw >> 16);
+            if (state == 0) state = 1;
+            return state;
         }
 
         #region Values
@@ -107,7 +128,7 @@ namespace GameLib.Random
         public static int Range(this Random rng, int from, int to) => rng._rng.NextInt(from, to); // [)
         public static int Range(this Random rng, int2 range) => rng.Range(range.x, range.y); // [)
         public static int RangeInclusive(this Random rng, int from, int to) => rng._rng.NextInt(from, to + 1); // []
-        public static int RangeInclusive(this Random rng, int2 range) => rng.RangeInclusive(range.x, range.y + 1); // []
+        public static int RangeInclusive(this Random rng, int2 range) => rng.RangeInclusive(range.x, range.y); // []
 
         // Float ranges
         public static float Range(this Random rng, float from, float to) => rng._rng.NextFloat(from, to); // [)
@@ -181,7 +202,7 @@ namespace GameLib.Random
             var shuffledArray = array.ToArray();
             for (var i = shuffledArray.Length - 1; i > 0; i--)
             {
-                var rndIndex = rng.Range(0, i);
+                var rndIndex = rng.Range(0, i + 1);
                 (shuffledArray[i], shuffledArray[rndIndex]) = (shuffledArray[rndIndex], shuffledArray[i]);
             }
 
@@ -196,7 +217,7 @@ namespace GameLib.Random
             var shuffledList = new List<T>(list);
             for (var i = shuffledList.Count - 1; i > 0; i--)
             {
-                var rndIndex = rng.Range(0, i);
+                var rndIndex = rng.Range(0, i + 1);
                 (shuffledList[i], shuffledList[rndIndex]) = (shuffledList[rndIndex], shuffledList[i]);
             }
 
