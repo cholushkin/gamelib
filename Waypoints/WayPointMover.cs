@@ -33,7 +33,7 @@ namespace GameLib
 
         public Logger Logger;
 
-        private StateMachineImmediate<PlayState> _stateMachine;
+        private BehaviourStateMachine<PlayState> _stateMachine;
         private Tweener _transitionTween;
         private Tweener _rotationTween;
         private Tweener _scaleTween;
@@ -42,8 +42,7 @@ namespace GameLib
         void Awake()
         {
             Assert.IsNotNull(WayPointsProvider);
-            _stateMachine = new StateMachineImmediate<PlayState>(this, PlayState.Initialization);
-
+            _stateMachine = new BehaviourStateMachine<PlayState>(this, PlayState.Initialization);
         }
 
         void Start()
