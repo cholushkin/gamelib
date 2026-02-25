@@ -355,10 +355,11 @@ public class PlayerController : MonoBehaviour
                 TargetStateMapping = next;
 
                 CurrentStateMapping?.OnExit?.Invoke();
-                TargetStateMapping?.OnEnter?.Invoke();
-
+                
                 CurrentStateMapping = TargetStateMapping;
                 TargetStateMapping = null;
+                
+                CurrentStateMapping?.OnEnter?.Invoke();
             }
         }
     }
