@@ -12,7 +12,7 @@ using UnityEngine.UIElements;
 namespace Gamelib
 {
     [EditorToolbarElement(id, typeof(SceneView))]
-    class EditorPlayWithDependencies : VisualElement
+    public class EditorPlayWithDependencies : VisualElement
     {
         public const string id = "Gamelib/SceneLoader/EditorPlayWithDependencies"; // This ID is used to populate toolbar elements.
         private const string _prefKeySelectedSeq = "Gamelib.SceneLoader.SelectedSequence"; // pref key;
@@ -39,7 +39,7 @@ namespace Gamelib
             );
 
             dropdownButtonContent = new GUIContent(
-                "...",
+                GetDropdownLabel(),
                 "Select scene loading sequence"
             );
 
@@ -84,10 +84,11 @@ namespace Gamelib
 
         void OnGUI()
         {
-            GUILayout.BeginHorizontal(GUILayout.Width(60)); // Adjust the width as needed
+            GUILayout.BeginHorizontal(GUILayout.Width(160)); // Adjust the width as needed
 
             // Dropdown Button
-            if (GUILayout.Button(dropdownButtonContent, EditorStyles.toolbarButton, GUILayout.Width(30)))
+            dropdownButtonContent.text = GetDropdownLabel();
+            if (GUILayout.Button(dropdownButtonContent, EditorStyles.toolbarButton, GUILayout.Width(130)))
             {
                 UpdateAvailableSequences();
                 ShowDropdown();
@@ -116,6 +117,23 @@ namespace Gamelib
 
             menu.ShowAsContext();
         }
+        
+        string GetDropdownLabel()
+        {
+            const int maxVisibleChars = 12;
+
+            if (string.IsNullOrEmpty(lastSelectedSequence))
+                return "[...]";
+
+            string name = lastSelectedSequence;
+
+            if (name.Length > maxVisibleChars)
+            {
+                name = "…" + name.Substring(name.Length - maxVisibleChars);
+            }
+
+            return $"{name} […]";
+        }
 
         void OnSeqSelected(object userData)
         {
@@ -126,30 +144,39 @@ namespace Gamelib
 
         void OnClick()
         {
+            RunSelectedSequence();
+        }
+        
+        public static void RunSelectedSequence()
+        {
             EditorSceneManager.playModeStartScene = null;
             SessionState.EraseString(SceneLoader.SceneLoaderSequenceOverrideKeyName);
 
             if (Application.isPlaying)
                 return;
 
-            if (string.IsNullOrEmpty(lastSelectedSequence))
+            string seq = EditorPrefs.GetString(_prefKeySelectedSeq, string.Empty);
+
+            if (string.IsNullOrEmpty(seq))
             {
-                lastSelectedSequence = SessionState.GetString("SceneLoaderSelectedSequence", null);
-                if (string.IsNullOrEmpty(lastSelectedSequence))
+                seq = SessionState.GetString("SceneLoaderSelectedSequence", null);
+
+                if (string.IsNullOrEmpty(seq))
                 {
                     Debug.Log("Please select a scene sequence first using dropdown on the left");
                     return;
                 }
             }
 
-            Debug.Log($"Loading '{lastSelectedSequence}' scene sequence");
-            SessionState.SetString(SceneLoader.SceneLoaderSequenceOverrideKeyName, lastSelectedSequence);
+            Debug.Log($"Loading '{seq}' scene sequence");
+            SessionState.SetString(SceneLoader.SceneLoaderSequenceOverrideKeyName, seq);
+
             EditorPlayAsRelease.RunStartScene();
         }
     }
 
     [EditorToolbarElement(id, typeof(SceneView))]
-    class EditorPlayAsRelease : EditorToolbarButton
+    public class EditorPlayAsRelease : EditorToolbarButton
     {
         public const string id = "Gamelib/SceneLoader/EditorPlayAsRelease"; // This ID is used to populate toolbar elements.
 
@@ -173,7 +200,7 @@ namespace Gamelib
             RunStartScene();
         }
 
-        internal static void RunStartScene()
+        public static void RunStartScene()
         {
             var startingScenePath = SceneUtility.GetScenePathByBuildIndex(0);
 
