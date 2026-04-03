@@ -1,10 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Runtime.CompilerServices;
-using UnityEngine;
-using UnityEngine.Assertions;
 
 namespace GameLib
 {
@@ -175,86 +170,6 @@ namespace GameLib
 
                 CurrentStateMapping?.OnEnter?.Invoke();
             }
-        }
-    }
-
-    public sealed class BehaviourStateMachine<T> where T : struct, IConvertible, IComparable
-    {
-        public FiniteStateMachine<T> Core { get; }
-
-        public FiniteStateMachine<T>.StateMapping CurrentState => Core.CurrentStateMapping;
-        public FiniteStateMachine<T>.StateMapping TargetState => Core.TargetStateMapping;
-
-        private readonly MonoBehaviour _owner;
-
-        public BehaviourStateMachine(
-            MonoBehaviour owner,
-            T defaultState,
-            FiniteStateMachine<T>.TransitionMode mode = FiniteStateMachine<T>.TransitionMode.DeferredUntilTick,
-            FiniteStateMachine<T>.TickOrder defaultTickOrder = FiniteStateMachine<T>.TickOrder.TransitionsThenUpdate,
-            bool declareOnlyMethods = true,
-            bool enterDefaultImmediately = false)
-        {
-            Assert.IsNotNull(owner);
-            _owner = owner;
-
-            Core = new FiniteStateMachine<T>(mode, defaultTickOrder);
-
-            var values = Enum.GetValues(typeof(T));
-            Assert.IsTrue(values.Length > 0);
-
-            foreach (T state in values)
-            {
-                var onEnter = CreateDelegate<Action>(FindMethod("OnEnter" + state, declareOnlyMethods));
-                var onUpdate = CreateDelegate<Action>(FindMethod("OnUpdate" + state, declareOnlyMethods));
-                var onExit = CreateDelegate<Action>(FindMethod("OnExit" + state, declareOnlyMethods));
-
-                Core.RegisterState(state, onEnter, onUpdate, onExit);
-            }
-
-            if (enterDefaultImmediately)
-                Core.SetInitialState(defaultState, true);
-            else
-                Core.GoTo(defaultState, false);
-        }
-
-        public void Tick(FiniteStateMachine<T>.TickOrder? tickOrder = null)
-        {
-            Core.Tick(tickOrder);
-        }
-
-        public void GoTo(T state, bool? immediateOverride = null)
-        {
-            Core.GoTo(state, immediateOverride);
-        }
-
-        public bool GoToIfNotInState(T state, bool? immediateOverride = null)
-        {
-            return Core.GoToIfNotInState(state, immediateOverride);
-        }
-
-        private V CreateDelegate<V>(MethodInfo method) where V : class
-        {
-            if (method == null)
-                return null;
-
-            var ret = Delegate.CreateDelegate(typeof(V), _owner, method) as V;
-            Assert.IsNotNull(ret);
-            return ret;
-        }
-
-        private MethodInfo FindMethod(string methodName, bool declareOnly)
-        {
-            var flags =
-                BindingFlags.Instance |
-                BindingFlags.Public |
-                BindingFlags.NonPublic |
-                (declareOnly ? BindingFlags.DeclaredOnly : 0);
-
-            return _owner.GetType()
-                .GetMethods(flags)
-                .Where(m => m.GetCustomAttributes(typeof(CompilerGeneratedAttribute), true).Length == 0)
-                .FirstOrDefault(m => m.Name.Equals(methodName));
         }
     }
 }
