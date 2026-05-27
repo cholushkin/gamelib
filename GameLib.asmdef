@@ -3,13 +3,13 @@
     "rootNamespace": "",
     "references": [
         "DOTween.Modules",
-        "NaughtyAttributes.Core",
         "Unity.TextMeshPro",
         "Unity.InputSystem",
         "Unity.Mathematics",
         "VitalRouter",
         "ZLogger.Unity",
-        "UniTask"
+        "UniTask",
+        "Alchemy"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

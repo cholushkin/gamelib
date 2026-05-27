@@ -1,4 +1,4 @@
-using NaughtyAttributes;
+using Alchemy.Inspector;
 using UnityEngine;
 using UnityEngine.UI;
 

@@ -1,10 +1,10 @@
 using System.Collections.Generic;
-using System.Threading; // Interlocked
+using System.Threading;
+using Alchemy.Inspector; // Interlocked
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using UnityEngine;
 using ZLogger.Unity;
-using NaughtyAttributes;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 #if UNITY_EDITOR
@@ -80,7 +80,7 @@ namespace GameLib.Log
 
 
         /// Rebuild the logger factory NOW, bump ConfigVersion
-        [Button("Reload loggers and factory in memory")]
+        [Button]
         public void ReloadNow() => Reinitialize();
 
         /// Optional: swap the configuration and rebuild immediately.
