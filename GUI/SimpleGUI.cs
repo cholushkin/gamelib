@@ -9,7 +9,7 @@ using VitalRouter;
 using ZLogger;
 using Logger = GameLib.Log.Logger;
 
-namespace GameLib.GUI
+namespace GameLib
 {
     [ScriptExecutionOrder(-8)]
     public class SimpleGUI : MonoBehaviour

@@ -1,7 +1,7 @@
 ﻿using DG.Tweening;
 using UnityEngine;
 
-namespace GameLib.GUI
+namespace GameLib
 {
     public class ScreenTransitionProcessor : MonoBehaviour
     {

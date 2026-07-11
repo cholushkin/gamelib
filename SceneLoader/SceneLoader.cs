@@ -10,7 +10,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 #endif
 
-namespace Gamelib
+namespace GameLib
 {
     public class SceneLoader : Singleton<SceneLoader>
     {

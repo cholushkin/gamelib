@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 
 
-namespace GameLib.GUI
+namespace GameLib
 {
     public class TouchPropagator : MonoBehaviour, IDragHandler, IEndDragHandler, IBeginDragHandler
     {

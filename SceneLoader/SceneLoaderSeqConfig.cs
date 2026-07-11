@@ -5,7 +5,7 @@ using JetBrains.Annotations;
 using UnityEngine;
 using UnityEngine.Assertions;
 
-namespace Gamelib
+namespace GameLib
 {
 	[CreateAssetMenu(fileName = "SceneLoaderSeqConfig", menuName = "GameLib/Scene/SceneLoaderSeqConfig", order = 1)]
 	public class SceneLoaderSeqConfig : ScriptableObject

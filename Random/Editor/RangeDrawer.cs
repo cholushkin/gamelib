@@ -4,7 +4,7 @@ using UnityEditor;
 using Unity.Mathematics;
 
 
-namespace Gamelib.Random
+namespace GameLib.Random
 {
     [CustomPropertyDrawer(typeof(ShowAsRangeAttribute))]
     [CustomPropertyDrawer(typeof(int2))]

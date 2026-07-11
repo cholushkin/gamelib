@@ -1,7 +1,7 @@
 
 using System;
 
-namespace Gamelib;
+namespace GameLib;
     
 public static class GoldenRationUtils
 {

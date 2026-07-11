@@ -9,7 +9,7 @@ using UnityEditor.Toolbars;
 using UnityEngine.UIElements;
 
 
-namespace Gamelib
+namespace GameLib
 {
     [EditorToolbarElement(id, typeof(SceneView))]
     public class EditorPlayWithDependencies : VisualElement
