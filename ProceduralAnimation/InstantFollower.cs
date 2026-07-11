@@ -3,7 +3,6 @@ using UnityEngine;
 
 public class InstantFollower : MonoBehaviour
 {
-    [Required]
     public Transform Target;
 
     public bool ConstrainX;

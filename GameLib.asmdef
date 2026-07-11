@@ -3,7 +3,6 @@
     "rootNamespace": "",
     "references": [
         "DOTween.Modules",
-        "NaughtyAttributes.Core",
         "Unity.TextMeshPro",
         "Unity.InputSystem",
         "Unity.Mathematics",
@@ -12,7 +11,8 @@
         "UniTask",
         "Unity.Addressables",
         "Unity.ResourceManager",
-        "VContainer"
+        "VContainer",
+        "Alchemy"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
