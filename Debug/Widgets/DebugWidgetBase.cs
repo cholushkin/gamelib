@@ -1,5 +1,5 @@
 using System;
-using NaughtyAttributes;
+using Alchemy.Inspector;
 using UnityEngine;
 
 namespace GameLib

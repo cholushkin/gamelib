@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
+using Alchemy.Inspector;
 using UnityEngine;
-using NaughtyAttributes;
 
 namespace GameLib
 {
@@ -21,7 +21,7 @@ namespace GameLib
                 Refresh();
         }
 
-        [Button("Refresh")]
+        [Button]
         public void Refresh()
         {
             _modules.Clear();
@@ -77,7 +77,7 @@ namespace GameLib
             }
         }
 
-        [Button("Clear")]
+        [Button]
         public void Clear()
         {
             _modules.Clear();

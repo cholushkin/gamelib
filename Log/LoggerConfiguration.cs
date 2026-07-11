@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
+using Alchemy.Inspector;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
-using NaughtyAttributes;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -44,12 +44,12 @@ namespace GameLib.Log
             public LoggerProviderConfigBase Provider;
 
             [BoxGroup("Provider")]
-            [Label("Hard Floor")]
+            [Title("Hard Floor")]
             [Tooltip("Provider-wide hard floor (cannot be loosened by other filters).")]
             public LogLevel HardFloor;
 
             [BoxGroup("Provider/Advanced")]
-            [Label("Default Min")]
+            [Title("Default Min")]
             [Tooltip("Soft default for this provider. Effective only if stricter than Global DefaultMin.")]
             public LogLevel DefaultMin;
 
@@ -60,7 +60,7 @@ namespace GameLib.Log
             public bool Mute;
         }
 
-        [InfoBox(
+        [HelpBox(
             "•Global HardFloor is an ABSOLUTE clamp; nothing below it passes.\n" +
             "•Global DefaultMin is a soft default used when nothing more specific applies.\n" +
             "•Provider HardFloor clamps ALL categories for that provider.\n" +
@@ -74,10 +74,10 @@ namespace GameLib.Log
             "•In production, raise Global HardFloor (Warning/Error) and keep file provider stricter than console.\n" +
             "•Apply provider-wide floors BEFORE category rules (done in LogManager).\n"
         )]
-        [Label("Global Hard Floor")]
+        [Title("Global Hard Floor")]
         public LogLevel HardFloor;
 
-        [Label("Global Default Min")]
+        [Title("Global Default Min")]
         public LogLevel DefaultMin;
 
         [Tooltip("Enabled log providers and their local rules.")]

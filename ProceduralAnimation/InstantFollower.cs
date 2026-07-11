@@ -1,4 +1,4 @@
-﻿using NaughtyAttributes;
+﻿using System.ComponentModel.DataAnnotations;
 using UnityEngine;
 
 public class InstantFollower : MonoBehaviour
