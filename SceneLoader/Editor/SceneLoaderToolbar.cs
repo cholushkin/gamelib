@@ -2,36 +2,22 @@ using UnityEngine;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine.SceneManagement;
-using System.Collections.Generic;
-using System.IO;
 using UnityEditor.Overlays;
 using UnityEditor.Toolbars;
 using UnityEngine.UIElements;
-
 
 namespace GameLib
 {
     [EditorToolbarElement(id, typeof(SceneView))]
     public class EditorPlayWithDependencies : VisualElement
     {
-        public const string id = "Gamelib/SceneLoader/EditorPlayWithDependencies"; // This ID is used to populate toolbar elements.
-        private const string _prefKeySelectedSeq = "Gamelib.SceneLoader.SelectedSequence"; // pref key;
-        private static List<string> availableSequences = new List<string>();
-        private static string lastSelectedSequence = null;
+        public const string id = "Gamelib/SceneLoader/EditorPlayWithDependencies";
         private static GUIContent playButtonContent;
         private static GUIContent dropdownButtonContent;
 
-
         public EditorPlayWithDependencies()
         {
-            UpdateAvailableSequences();
-
-            // Load once from EditorPrefs (per-user, survives restarts)
-            lastSelectedSequence = EditorPrefs.GetString(_prefKeySelectedSeq, string.Empty);
-
-            // simple fallback: if empty or no longer exists, use first available (if any)
-            if ((string.IsNullOrEmpty(lastSelectedSequence) || !availableSequences.Contains(lastSelectedSequence)) && availableSequences.Count > 0)
-                lastSelectedSequence = availableSequences[0];
+            SceneSequenceController.RefreshSequences();
 
             playButtonContent = new GUIContent(
                 AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Libs/GameLib/SceneLoader/Editor/Textures/PlayButton.png"),
@@ -49,48 +35,15 @@ namespace GameLib
             style.flexDirection = FlexDirection.Row;
         }
 
-        void UpdateAvailableSequences()
-        {
-            availableSequences.Clear();
-            string[] guids = AssetDatabase.FindAssets("t:SceneLoaderSeqConfig");
-            if (guids == null || guids.Length != 1)
-            {
-                // Debug.LogWarning($"There must be SceneLoaderSeqConfig for the project with the name starting from 'Main'");
-                return;
-            }
-
-            SceneLoaderSeqConfig mainSeqConfig = null;
-
-            foreach (string guid in guids)
-            {
-                var path = AssetDatabase.GUIDToAssetPath(guid);
-                var filename = Path.GetFileName(path);
-                if (filename.StartsWith("Main"))
-                {
-                    mainSeqConfig = AssetDatabase.LoadAssetAtPath<SceneLoaderSeqConfig>(path);
-                    break;
-                }
-            }
-
-            if (mainSeqConfig == null)
-            {
-                Debug.LogError($"There must be SceneLoaderSeqConfig for the project which starts with 'Main'");
-                return;
-            }
-
-            foreach (var seq in mainSeqConfig.Sequences)
-                availableSequences.Add(seq.Name);
-        }
-
         void OnGUI()
         {
-            GUILayout.BeginHorizontal(GUILayout.Width(160)); // Adjust the width as needed
+            GUILayout.BeginHorizontal(GUILayout.Width(160));
 
             // Dropdown Button
             dropdownButtonContent.text = GetDropdownLabel();
             if (GUILayout.Button(dropdownButtonContent, EditorStyles.toolbarButton, GUILayout.Width(130)))
             {
-                UpdateAvailableSequences();
+                SceneSequenceController.RefreshSequences();
                 ShowDropdown();
             }
 
@@ -105,14 +58,14 @@ namespace GameLib
 
         void ShowDropdown()
         {
-            if (lastSelectedSequence == null)
-                lastSelectedSequence = SessionState.GetString("SceneLoaderSelectedSequence", null);
+            var availableSequences = SceneSequenceController.AvailableSequences;
+            string currentSeq = SceneSequenceController.CurrentSequence;
 
             var menu = new GenericMenu();
             for (int i = 0; i < availableSequences.Count; i++)
             {
                 var seqName = availableSequences[i];
-                menu.AddItem(new GUIContent(seqName), seqName == lastSelectedSequence, OnSeqSelected, seqName);
+                menu.AddItem(new GUIContent(seqName), seqName == currentSeq, OnSeqSelected, seqName);
             }
 
             menu.ShowAsContext();
@@ -121,6 +74,7 @@ namespace GameLib
         string GetDropdownLabel()
         {
             const int maxVisibleChars = 12;
+            string lastSelectedSequence = SceneSequenceController.CurrentSequence;
 
             if (string.IsNullOrEmpty(lastSelectedSequence))
                 return "[...]";
@@ -137,48 +91,31 @@ namespace GameLib
 
         void OnSeqSelected(object userData)
         {
-            lastSelectedSequence = (string)userData;
-            EditorPrefs.SetString(_prefKeySelectedSeq, lastSelectedSequence); // persist once
-            SessionState.SetString("SceneLoaderSelectedSequence", lastSelectedSequence);
+            SceneSequenceController.CurrentSequence = (string)userData;
         }
 
         void OnClick()
         {
-            RunSelectedSequence();
+            SceneSequenceController.RunSelectedSequence();
         }
-        
+
+        // Maintained as a static wrapper so any existing code outside this file doesn't break
         public static void RunSelectedSequence()
         {
-            EditorSceneManager.playModeStartScene = null;
-            SessionState.EraseString(SceneLoader.SceneLoaderSequenceOverrideKeyName);
+            SceneSequenceController.RunSelectedSequence();
+        }
 
-            if (Application.isPlaying)
-                return;
-
-            string seq = EditorPrefs.GetString(_prefKeySelectedSeq, string.Empty);
-
-            if (string.IsNullOrEmpty(seq))
-            {
-                seq = SessionState.GetString("SceneLoaderSelectedSequence", null);
-
-                if (string.IsNullOrEmpty(seq))
-                {
-                    Debug.Log("Please select a scene sequence first using dropdown on the left");
-                    return;
-                }
-            }
-
-            Debug.Log($"Loading '{seq}' scene sequence");
-            SessionState.SetString(SceneLoader.SceneLoaderSequenceOverrideKeyName, seq);
-
-            EditorPlayAsRelease.RunStartScene();
+        // Maintained as a static wrapper for cycling sequences
+        public static void SelectNextSequence()
+        {
+            SceneSequenceController.SelectNextSequence();
         }
     }
 
     [EditorToolbarElement(id, typeof(SceneView))]
     public class EditorPlayAsRelease : EditorToolbarButton
     {
-        public const string id = "Gamelib/SceneLoader/EditorPlayAsRelease"; // This ID is used to populate toolbar elements.
+        public const string id = "Gamelib/SceneLoader/EditorPlayAsRelease";
 
         public EditorPlayAsRelease()
         {
@@ -204,11 +141,6 @@ namespace GameLib
         {
             var startingScenePath = SceneUtility.GetScenePathByBuildIndex(0);
 
-            // Note:  Unity 2023.1.4f1 bug ?
-            // Remove scene from hierarchy if it's game starting scene and it has "not loaded" state in hierarchy,
-            // otherwise Unity Player won't start - some loaded scene will stuck with 'is unloading' status in hierarchy.
-            // Probably Unity trying to remove "not loaded" scene and load it in the same time and it has some conflict.
-            // Other possible workaround could be: load this scene additively here and unload it again to "not loaded" state when game stops
             foreach (var sceneSetup in EditorSceneManager.GetSceneManagerSetup())
                 if (startingScenePath == sceneSetup.path && !sceneSetup.isLoaded)
                 {

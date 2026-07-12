@@ -1,6 +1,6 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
-using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
 
@@ -10,21 +10,37 @@ namespace GameLib
     public static class ProjectFolderColors
     {
         private static ProjectFolderColorsSettings _settings;
+        private static GUIStyle _cachedStyle;
+        private static readonly HashSet<string> _selectedGuids = new();
 
         static ProjectFolderColors()
         {
             EditorApplication.projectWindowItemOnGUI += OnProjectWindowItemGUI;
             EditorApplication.projectChanged += () => _settings = null;
+            
+            // Cache selection changes to avoid array allocations inside OnGUI
+            Selection.selectionChanged += UpdateSelectionCache;
+            UpdateSelectionCache();
+        }
+
+        private static void UpdateSelectionCache()
+        {
+            _selectedGuids.Clear();
+            string[] guids = Selection.assetGUIDs;
+            for (int i = 0; i < guids.Length; i++)
+            {
+                _selectedGuids.Add(guids[i]);
+            }
         }
 
         private static void OnProjectWindowItemGUI(string guid, Rect rect)
         {
-            // 1. Safeguard: Ignore large grid-view icons so we don't draw over asset preview thumbnails
+            // Safeguard: Ignore large grid-view icons
             if (rect.height > 20)
                 return;
 
             var settings = GetSettings();
-            if (settings == null)
+            if (settings == null || settings.Rules.Count == 0)
                 return;
 
             string path = AssetDatabase.GUIDToAssetPath(guid);
@@ -32,66 +48,61 @@ namespace GameLib
                 return;
 
             bool isFolder = AssetDatabase.IsValidFolder(path);
-            
-            // Match wildcards against the full filename (so rules like "*.cs" or "*.prefab" work)
             string fullFileName = Path.GetFileName(path);
-            
-            // Unity displays filenames without extensions in the Project window for regular assets
             string displayName = isFolder ? fullFileName : Path.GetFileNameWithoutExtension(path);
 
-            bool selected = Array.IndexOf(Selection.assetGUIDs, guid) >= 0;
+            // O(1) allocation-free selection lookup
+            bool selected = _selectedGuids.Contains(guid);
             Color? targetColor = null;
 
-            // 2. Check if this asset or folder matches any custom color rules
-            foreach (var rule in settings.Rules)
+            for (int i = 0; i < settings.Rules.Count; i++)
             {
+                var rule = settings.Rules[i];
                 if (string.IsNullOrWhiteSpace(rule.Wildcard))
                     continue;
 
-                if (!WildcardMatch(fullFileName, rule.Wildcard))
+                // High-performance wildcard match without Regex allocations
+                if (!FastWildcardMatch(fullFileName, rule.Wildcard))
                     continue;
 
                 targetColor = rule.Color;
                 break;
             }
 
-            // 3. Draw the custom label and background for all list items
             DrawAssetLabel(rect, displayName, targetColor, selected);
         }
 
         private static void DrawAssetLabel(Rect rect, string text, Color? customColor, bool selected)
         {
-            var style = new GUIStyle(EditorStyles.label);
-            style.fontStyle = FontStyle.Bold;
+            // Initialize cached style once
+            if (_cachedStyle == null)
+            {
+                _cachedStyle = new GUIStyle(EditorStyles.label)
+                {
+                    fontStyle = FontStyle.Bold
+                };
+            }
 
-            // Default to white when selected, or standard Unity label color when unselected
             Color textColor = customColor ?? (selected ? Color.white : EditorStyles.label.normal.textColor);
             
-            // Apply color to all interactive GUI states so it persists across hover, click, and selection
-            style.normal.textColor = textColor;
-            style.hover.textColor = textColor;
-            style.focused.textColor = textColor;
-            style.active.textColor = textColor;
+            // Modify cached style state
+            _cachedStyle.normal.textColor = textColor;
+            _cachedStyle.hover.textColor = textColor;
+            _cachedStyle.focused.textColor = textColor;
+            _cachedStyle.active.textColor = textColor;
 
             bool isHovered = rect.Contains(Event.current.mousePosition);
 
-            // Push the text rect past the small asset/folder icon on the left
             rect.x += 16;
             rect.width -= 16;
 
-            // Calculate background color matching Unity's native UI themes
             Color bgColor;
             if (selected)
             {
                 if (EditorGUIUtility.isProSkin)
-                {
-                    // Shifts to a slightly lighter blue when hovering over a selected item
                     bgColor = isHovered ? new Color(0.21f, 0.40f, 0.57f) : new Color(0.17f, 0.36f, 0.53f);
-                }
                 else
-                {
                     bgColor = isHovered ? new Color(0.30f, 0.55f, 0.95f) : new Color(0.24f, 0.49f, 0.91f);
-                }
             }
             else if (EditorGUIUtility.isProSkin)
             {
@@ -102,24 +113,50 @@ namespace GameLib
                 bgColor = isHovered ? new Color(0.69f, 0.69f, 0.69f) : new Color(0.76f, 0.76f, 0.76f);
             }
 
-            // Draw background patch to cover default text, then draw our custom styled label
             EditorGUI.DrawRect(rect, bgColor);
-            GUI.Label(rect, text, style);
+            GUI.Label(rect, text, _cachedStyle);
         }
 
-        private static bool WildcardMatch(string input, string wildcard)
+        /// Allocation-free wildcard string matching for standard '*' and '?' patterns.
+        private static bool FastWildcardMatch(ReadOnlySpan<char> input, ReadOnlySpan<char> pattern)
         {
-            string regex =
-                "^" +
-                Regex.Escape(wildcard)
-                    .Replace("\\*", ".*")
-                    .Replace("\\?", ".") +
-                "$";
+            int inputIdx = 0;
+            int patternIdx = 0;
+            int starIdx = -1;
+            int matchIdx = 0;
 
-            return Regex.IsMatch(
-                input,
-                regex,
-                RegexOptions.IgnoreCase);
+            while (inputIdx < input.Length)
+            {
+                if (patternIdx < pattern.Length && 
+                   (char.ToLowerInvariant(pattern[patternIdx]) == char.ToLowerInvariant(input[inputIdx]) || pattern[patternIdx] == '?'))
+                {
+                    inputIdx++;
+                    patternIdx++;
+                }
+                else if (patternIdx < pattern.Length && pattern[patternIdx] == '*')
+                {
+                    starIdx = patternIdx;
+                    matchIdx = inputIdx;
+                    patternIdx++;
+                }
+                else if (starIdx != -1)
+                {
+                    patternIdx = starIdx + 1;
+                    matchIdx++;
+                    inputIdx = matchIdx;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+            while (patternIdx < pattern.Length && pattern[patternIdx] == '*')
+            {
+                patternIdx++;
+            }
+
+            return patternIdx == pattern.Length;
         }
 
         private static ProjectFolderColorsSettings GetSettings()
@@ -127,9 +164,7 @@ namespace GameLib
             if (_settings != null)
                 return _settings;
 
-            string[] guids =
-                AssetDatabase.FindAssets("t:ProjectFolderColorsSettings");
-
+            string[] guids = AssetDatabase.FindAssets("t:ProjectFolderColorsSettings");
             if (guids.Length == 0)
                 return null;
 

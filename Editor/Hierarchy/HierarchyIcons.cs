@@ -14,12 +14,12 @@ namespace GameLib
 
         static HierarchyIcons()
         {
-            EditorApplication.hierarchyWindowItemOnGUI += OnHierarchyGUI;
+            EditorApplication.hierarchyWindowItemByEntityIdOnGUI += OnHierarchyGUI;
         }
 
-        private static void OnHierarchyGUI(int instanceID, Rect rect)
+        private static void OnHierarchyGUI(EntityId entityId, Rect rect)
         {
-            var go = EditorUtility.InstanceIDToObject(instanceID) as GameObject;
+            var go = EditorUtility.EntityIdToObject(entityId) as GameObject;
             if (go == null)
                 return;
 
@@ -29,8 +29,8 @@ namespace GameLib
 
             // Draw immediately after Unity's built-in GameObject icon.
             var iconRect = new Rect(
-                rect.x+8,
-                rect.y+8,
+                rect.x + 8,
+                rect.y + 8,
                 10,
                 10);
 
