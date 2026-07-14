@@ -1,17 +1,21 @@
-using UnityEngine;
+// todo: Add a custom Editor Inspector or Settings window to let developers override icon paths if they customize the library theme.
+// idea: Cache the discovered texture GUIDs in EditorPrefs to avoid querying AssetDatabase.FindAssets on every domain reload.
+
 using UnityEditor;
-using UnityEditor.SceneManagement;
-using UnityEngine.SceneManagement;
 using UnityEditor.Overlays;
+using UnityEditor.SceneManagement;
 using UnityEditor.Toolbars;
+using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
 
-namespace GameLib
+namespace GameLib.Editor
 {
     [EditorToolbarElement(id, typeof(SceneView))]
     public class EditorPlayWithDependencies : VisualElement
     {
-        public const string id = "Gamelib/SceneLoader/EditorPlayWithDependencies";
+        public const string id = "GameLib/SceneLoader/EditorPlayWithDependencies";
+        
         private static GUIContent playButtonContent;
         private static GUIContent dropdownButtonContent;
 
@@ -19,15 +23,10 @@ namespace GameLib
         {
             SceneSequenceController.RefreshSequences();
 
-            playButtonContent = new GUIContent(
-                AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Libs/GameLib/SceneLoader/Editor/Textures/PlayButton.png"),
-                "Play selected scene sequence"
-            );
+            var playTexture = LoadToolbarTexture("PlayButton");
+            playButtonContent = playTexture != null ? new GUIContent(playTexture, "Play selected scene sequence") : new GUIContent("► Seq", "Play selected scene sequence");
 
-            dropdownButtonContent = new GUIContent(
-                GetDropdownLabel(),
-                "Select scene loading sequence"
-            );
+            dropdownButtonContent = new GUIContent(GetDropdownLabel(), "Select scene loading sequence");
 
             var toolbar = new IMGUIContainer(OnGUI);
             Add(toolbar);
@@ -35,11 +34,11 @@ namespace GameLib
             style.flexDirection = FlexDirection.Row;
         }
 
-        void OnGUI()
+        private void OnGUI()
         {
             GUILayout.BeginHorizontal(GUILayout.Width(160));
 
-            // Dropdown Button
+            // Dropdown Selector Button
             dropdownButtonContent.text = GetDropdownLabel();
             if (GUILayout.Button(dropdownButtonContent, EditorStyles.toolbarButton, GUILayout.Width(130)))
             {
@@ -47,16 +46,16 @@ namespace GameLib
                 ShowDropdown();
             }
 
-            // Play Button
+            // Play Sequence Button
             if (GUILayout.Button(playButtonContent, EditorStyles.toolbarButton, GUILayout.Width(30)))
             {
-                OnClick();
+                SceneSequenceController.RunSelectedSequence();
             }
 
             GUILayout.EndHorizontal();
         }
 
-        void ShowDropdown()
+        private void ShowDropdown()
         {
             var availableSequences = SceneSequenceController.AvailableSequences;
             string currentSeq = SceneSequenceController.CurrentSequence;
@@ -65,13 +64,13 @@ namespace GameLib
             for (int i = 0; i < availableSequences.Count; i++)
             {
                 var seqName = availableSequences[i];
-                menu.AddItem(new GUIContent(seqName), seqName == currentSeq, OnSeqSelected, seqName);
+                menu.AddItem(new GUIContent(seqName), string.Equals(seqName, currentSeq), OnSeqSelected, seqName);
             }
 
             menu.ShowAsContext();
         }
-        
-        string GetDropdownLabel()
+
+        private string GetDropdownLabel()
         {
             const int maxVisibleChars = 12;
             string lastSelectedSequence = SceneSequenceController.CurrentSequence;
@@ -80,7 +79,6 @@ namespace GameLib
                 return "[...]";
 
             string name = lastSelectedSequence;
-
             if (name.Length > maxVisibleChars)
             {
                 name = "…" + name.Substring(name.Length - maxVisibleChars);
@@ -89,89 +87,61 @@ namespace GameLib
             return $"{name} […]";
         }
 
-        void OnSeqSelected(object userData)
+        private void OnSeqSelected(object userData)
         {
             SceneSequenceController.CurrentSequence = (string)userData;
         }
 
-        void OnClick()
+        // Robust asset search that finds textures even if folder casing or root path changes
+        internal static Texture2D LoadToolbarTexture(string textureName)
         {
-            SceneSequenceController.RunSelectedSequence();
+            string[] guids = AssetDatabase.FindAssets($"t:Texture2D {textureName}");
+            if (guids != null && guids.Length > 0)
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guids[0]);
+                return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+            }
+            // Explicit fallback matching your exact hierarchy
+            return AssetDatabase.LoadAssetAtPath<Texture2D>($"Assets/Libs/GameLib/SceneLoader/Textures/{textureName}.png");
         }
 
-        // Maintained as a static wrapper so any existing code outside this file doesn't break
-        public static void RunSelectedSequence()
-        {
-            SceneSequenceController.RunSelectedSequence();
-        }
-
-        // Maintained as a static wrapper for cycling sequences
-        public static void SelectNextSequence()
-        {
-            SceneSequenceController.SelectNextSequence();
-        }
+        public static void RunSelectedSequence() => SceneSequenceController.RunSelectedSequence();
+        public static void SelectNextSequence() => SceneSequenceController.SelectNextSequence();
     }
 
     [EditorToolbarElement(id, typeof(SceneView))]
     public class EditorPlayAsRelease : EditorToolbarButton
     {
-        public const string id = "Gamelib/SceneLoader/EditorPlayAsRelease";
+        public const string id = "GameLib/SceneLoader/EditorPlayAsRelease";
 
         public EditorPlayAsRelease()
         {
-            icon = AssetDatabase.LoadAssetAtPath<Texture2D>(
-                "Assets/Libs/GameLib/SceneLoader/Editor/Textures/PlayButtonRelease.png");
-            tooltip = "Play the game as it will play in RELEASE";
+            var releaseTexture = EditorPlayWithDependencies.LoadToolbarTexture("PlayButtonRelease");
+            icon = releaseTexture;
+            text = releaseTexture == null ? "► Rel" : string.Empty;
+            tooltip = "Play the game as it will run in RELEASE (Default Sequence)";
             clicked += OnClick;
         }
 
-        void OnClick()
+        private void OnClick()
         {
             EditorSceneManager.playModeStartScene = null;
-            SessionState.EraseString(SceneLoader.SceneLoaderSequenceOverrideKeyName);
+            SessionState.EraseString("SceneLoaderSequenceOverride");
 
-            if (Application.isPlaying)
-                return;
+            if (Application.isPlaying) return;
 
-            Debug.Log("Running release scene order");
-            RunStartScene();
-        }
-
-        public static void RunStartScene()
-        {
-            var startingScenePath = SceneUtility.GetScenePathByBuildIndex(0);
-
-            foreach (var sceneSetup in EditorSceneManager.GetSceneManagerSetup())
-                if (startingScenePath == sceneSetup.path && !sceneSetup.isLoaded)
-                {
-                    EditorSceneManager.CloseScene(SceneManager.GetSceneByPath(startingScenePath), true);
-                    break;
-                }
-
-            SceneAsset startingSceneAsset = AssetDatabase.LoadAssetAtPath<SceneAsset>(startingScenePath);
-            EditorSceneManager.playModeStartScene = startingSceneAsset;
-            EditorApplication.isPlaying = true;
+            Debug.Log("[SceneLoader] Running standard release scene order (Index 0 Default)");
+            SceneSequenceController.RunStartScene();
         }
     }
 
-    [Overlay(typeof(SceneView), "SceneLoader toolbar")]
-    [Icon("Assets/Libs/GameLib/SceneLoader/Editor/Textures/scene-loader-icon.png")]
-    public class EditorGamelibToolbar : ToolbarOverlay
+    // Notice we removed /Editor/ from the Icon attribute path to match your actual structure!
+    [Overlay(typeof(SceneView), "SceneLoader Toolbar")]
+    [Icon("Assets/Libs/gamelib/SceneLoader/Textures/scene-loader-icon.png")]
+    public class EditorGameLibToolbar : ToolbarOverlay
     {
-        EditorGamelibToolbar() : base(EditorPlayWithDependencies.id, EditorPlayAsRelease.id)
+        public EditorGameLibToolbar() : base(EditorPlayWithDependencies.id, EditorPlayAsRelease.id)
         {
-        }
-    }
-
-    public static class SceneLoadingHook
-    {
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSplashScreen)]
-        static void OnBeforeSplashScreen()
-        {
-            if (string.IsNullOrEmpty(SessionState.GetString(SceneLoader.SceneLoaderSequenceOverrideKeyName, null)))
-                EditorSceneManager.playModeStartScene = null;
-            else
-                Debug.Log($"Starting dev scene '{SessionState.GetString(SceneLoader.SceneLoaderSequenceOverrideKeyName, null)}'");
         }
     }
 }

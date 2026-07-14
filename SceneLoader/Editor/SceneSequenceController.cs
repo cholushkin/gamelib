@@ -1,19 +1,24 @@
+// todo: Create a dedicated Project Settings page so developers can explicitly assign the active SceneSequenceConfig instead of scanning the AssetDatabase.
+// todo: Add keyboard shortcut bindings (e.g., Ctrl+Shift+G) to trigger the currently selected sequence without clicking the toolbar.
+// idea: Add a "Validate Sequences" menu item that checks all configured target scenes to ensure they exist in Build Settings or Addressables before pressing Play.
+
 using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
-namespace GameLib
+namespace GameLib.Editor
 {
-    /// Centralized static controller for managing, saving, cycling, and running scene loading sequences.
     public static class SceneSequenceController
     {
-        private const string PrefKeySelectedSeq = "Gamelib.SceneLoader.SelectedSequence";
+        private const string PrefKeySelectedSeq = "GameLib.SceneLoader.SelectedSequence";
+        private const string OverrideKeyName = "SceneLoaderSequenceOverride";
+        
         private static readonly List<string> _availableSequences = new List<string>();
         private static string _lastSelectedSequence = null;
 
-        /// Returns the list of currently available scene sequences found in the project.
         public static IReadOnlyList<string> AvailableSequences
         {
             get
@@ -23,7 +28,6 @@ namespace GameLib
             }
         }
 
-        /// Gets or sets the currently active sequence name, persisting it across sessions.
         public static string CurrentSequence
         {
             get
@@ -37,7 +41,6 @@ namespace GameLib
                     }
                 }
 
-                // Fallback to the first available sequence if none is selected
                 if ((string.IsNullOrEmpty(_lastSelectedSequence) || !_availableSequences.Contains(_lastSelectedSequence)) && _availableSequences.Count > 0)
                 {
                     _lastSelectedSequence = _availableSequences[0];
@@ -53,46 +56,40 @@ namespace GameLib
             }
         }
 
-        /// Scans the AssetDatabase for the main SceneLoaderSeqConfig asset and updates the sequences list.
+        // Scans the project for any SceneSequenceConfig assets and aggregates all valid sequence names
         public static void RefreshSequences()
         {
             _availableSequences.Clear();
-            string[] guids = AssetDatabase.FindAssets("t:SceneLoaderSeqConfig");
+            string[] guids = AssetDatabase.FindAssets("t:SceneSequenceConfig");
+            
             if (guids == null || guids.Length == 0) return;
-
-            SceneLoaderSeqConfig mainSeqConfig = null;
 
             foreach (string guid in guids)
             {
                 var path = AssetDatabase.GUIDToAssetPath(guid);
-                var filename = Path.GetFileName(path);
-                if (filename.StartsWith("Main"))
+                var config = AssetDatabase.LoadAssetAtPath<SceneSequenceConfig>(path);
+                
+                if (config != null && config.Sequences != null)
                 {
-                    mainSeqConfig = AssetDatabase.LoadAssetAtPath<SceneLoaderSeqConfig>(path);
-                    break;
+                    foreach (var seq in config.Sequences)
+                    {
+                        if (!string.IsNullOrEmpty(seq.SequenceName) && !_availableSequences.Contains(seq.SequenceName))
+                        {
+                            _availableSequences.Add(seq.SequenceName);
+                        }
+                    }
                 }
-            }
-
-            if (mainSeqConfig == null)
-            {
-                Debug.LogError("There must be a SceneLoaderSeqConfig in the project whose filename starts with 'Main'");
-                return;
-            }
-
-            foreach (var seq in mainSeqConfig.Sequences)
-            {
-                _availableSequences.Add(seq.Name);
             }
         }
 
-        /// Cycles to the next available scene sequence and persists the selection.
+        // Cycles through available sequences and saves the selection
         public static void SelectNextSequence()
         {
             RefreshSequences();
 
             if (_availableSequences.Count == 0)
             {
-                Debug.LogWarning("[SceneLoader] No scene sequences found to iterate through.");
+                Debug.LogWarning("[SceneLoader] No scene sequences found in the project.");
                 return;
             }
 
@@ -104,11 +101,11 @@ namespace GameLib
             Debug.Log($"[SceneLoader] Selected sequence changed to: '{CurrentSequence}' ({nextIndex + 1}/{_availableSequences.Count})");
         }
 
-        /// Triggers Unity Play Mode using the currently selected scene sequence.
+        // Sets the SessionState override and forces Unity to launch Play Mode from Scene Index 0 (Main)
         public static void RunSelectedSequence()
         {
             EditorSceneManager.playModeStartScene = null;
-            SessionState.EraseString(SceneLoader.SceneLoaderSequenceOverrideKeyName);
+            SessionState.EraseString(OverrideKeyName);
 
             if (Application.isPlaying) return;
 
@@ -116,14 +113,45 @@ namespace GameLib
 
             if (string.IsNullOrEmpty(seq))
             {
-                Debug.Log("Please select a scene sequence first using the dropdown on the left.");
+                Debug.LogWarning("[SceneLoader] Please select a scene sequence first using the toolbar dropdown.");
                 return;
             }
 
-            Debug.Log($"Loading '{seq}' scene sequence");
-            SessionState.SetString(SceneLoader.SceneLoaderSequenceOverrideKeyName, seq);
+            Debug.Log($"[SceneLoader] Preparing Play Mode with sequence override: '{seq}'");
+            SessionState.SetString(OverrideKeyName, seq);
 
-            EditorPlayAsRelease.RunStartScene();
+            RunStartScene();
+        }
+
+        // Safely loads Index 0 as the play mode start scene so VContainer initializes cleanly from the root
+        public static void RunStartScene()
+        {
+            if (SceneManager.sceneCountInBuildSettings == 0)
+            {
+                Debug.LogError("[SceneLoader] Build Settings scene list is empty! Please add your entry-point (Main) scene as Index 0.");
+                return;
+            }
+
+            var startingScenePath = SceneUtility.GetScenePathByBuildIndex(0);
+
+            foreach (var sceneSetup in EditorSceneManager.GetSceneManagerSetup())
+            {
+                if (startingScenePath == sceneSetup.path && !sceneSetup.isLoaded)
+                {
+                    EditorSceneManager.CloseScene(SceneManager.GetSceneByPath(startingScenePath), true);
+                    break;
+                }
+            }
+
+            SceneAsset startingSceneAsset = AssetDatabase.LoadAssetAtPath<SceneAsset>(startingScenePath);
+            if (startingSceneAsset == null)
+            {
+                Debug.LogError($"[SceneLoader] Could not load starting scene asset at path: {startingScenePath}");
+                return;
+            }
+
+            EditorSceneManager.playModeStartScene = startingSceneAsset;
+            EditorApplication.isPlaying = true;
         }
     }
 }
