@@ -1,5 +1,5 @@
-// todo: Add a custom Editor Inspector or Settings window to let developers override icon paths if they customize the library theme.
-// idea: Cache the discovered texture GUIDs in EditorPrefs to avoid querying AssetDatabase.FindAssets on every domain reload.
+// todo: Add a keyboard shortcut binding (e.g., Ctrl+Shift+G) in EditorPrefs to let developers trigger the active DEV sequence without clicking the toolbar button.
+// idea: Add a visual indicator in the dropdown label (e.g., a checkmark or warning sign) showing whether all required parent dependencies for the selected sequence exist in Build Settings.
 
 using UnityEditor;
 using UnityEditor.Overlays;
@@ -23,9 +23,8 @@ namespace GameLib.Editor
         {
             SceneSequenceController.RefreshSequences();
 
-            var playTexture = LoadToolbarTexture("PlayButton");
-            playButtonContent = playTexture != null ? new GUIContent(playTexture, "Play selected scene sequence") : new GUIContent("► Seq", "Play selected scene sequence");
-
+            // Using clean emoji/text labels instead of texture loading
+            playButtonContent = new GUIContent("\u25b6\ufe0fDEV", "Play selected scene sequence with dependencies (Override)");
             dropdownButtonContent = new GUIContent(GetDropdownLabel(), "Select scene loading sequence");
 
             var toolbar = new IMGUIContainer(OnGUI);
@@ -36,18 +35,19 @@ namespace GameLib.Editor
 
         private void OnGUI()
         {
-            GUILayout.BeginHorizontal(GUILayout.Width(160));
+            // Widened container slightly from 160 to 185 to comfortably fit the "🞂DEV" text label
+            GUILayout.BeginHorizontal(GUILayout.Width(185));
 
             // Dropdown Selector Button
             dropdownButtonContent.text = GetDropdownLabel();
-            if (GUILayout.Button(dropdownButtonContent, EditorStyles.toolbarButton, GUILayout.Width(130)))
+            if (GUILayout.Button(dropdownButtonContent, EditorStyles.toolbarButton, GUILayout.Width(135)))
             {
                 SceneSequenceController.RefreshSequences();
                 ShowDropdown();
             }
 
-            // Play Sequence Button
-            if (GUILayout.Button(playButtonContent, EditorStyles.toolbarButton, GUILayout.Width(30)))
+            // Play Sequence Button (DEV)
+            if (GUILayout.Button(playButtonContent, EditorStyles.toolbarButton, GUILayout.Width(45)))
             {
                 SceneSequenceController.RunSelectedSequence();
             }
@@ -92,19 +92,6 @@ namespace GameLib.Editor
             SceneSequenceController.CurrentSequence = (string)userData;
         }
 
-        // Robust asset search that finds textures even if folder casing or root path changes
-        internal static Texture2D LoadToolbarTexture(string textureName)
-        {
-            string[] guids = AssetDatabase.FindAssets($"t:Texture2D {textureName}");
-            if (guids != null && guids.Length > 0)
-            {
-                string path = AssetDatabase.GUIDToAssetPath(guids[0]);
-                return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
-            }
-            // Explicit fallback matching your exact hierarchy
-            return AssetDatabase.LoadAssetAtPath<Texture2D>($"Assets/Libs/GameLib/SceneLoader/Textures/{textureName}.png");
-        }
-
         public static void RunSelectedSequence() => SceneSequenceController.RunSelectedSequence();
         public static void SelectNextSequence() => SceneSequenceController.SelectNextSequence();
     }
@@ -116,10 +103,9 @@ namespace GameLib.Editor
 
         public EditorPlayAsRelease()
         {
-            var releaseTexture = EditorPlayWithDependencies.LoadToolbarTexture("PlayButtonRelease");
-            icon = releaseTexture;
-            text = releaseTexture == null ? "► Rel" : string.Empty;
-            tooltip = "Play the game as it will run in RELEASE (Default Sequence)";
+            // Clean text-based release play button without external texture dependencies
+            text = "\u25b6\ufe0fREL";
+            tooltip = "Play the game as it will run in RELEASE (Default Sequence from Index 0)";
             clicked += OnClick;
         }
 
@@ -135,9 +121,7 @@ namespace GameLib.Editor
         }
     }
 
-    // Notice we removed /Editor/ from the Icon attribute path to match your actual structure!
-    [Overlay(typeof(SceneView), "SceneLoader Toolbar")]
-    [Icon("Assets/Libs/gamelib/SceneLoader/Textures/scene-loader-icon.png")]
+    [Overlay(typeof(SceneView), "🔀")]
     public class EditorGameLibToolbar : ToolbarOverlay
     {
         public EditorGameLibToolbar() : base(EditorPlayWithDependencies.id, EditorPlayAsRelease.id)
