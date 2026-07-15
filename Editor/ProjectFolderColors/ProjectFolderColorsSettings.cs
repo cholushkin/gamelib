@@ -6,7 +6,7 @@ namespace GameLib
 {
     [CreateAssetMenu(
         fileName = "ProjectFolderColors",
-        menuName = "GameLib/Project Folder Colors")]
+        menuName = "GameLib/ProjectFolderColors/Project Folder Colors")]
     public class ProjectFolderColorsSettings : ScriptableObject
     {
         public List<Rule> Rules = new();

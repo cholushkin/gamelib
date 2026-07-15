@@ -16,7 +16,13 @@ namespace GameLib
         static ProjectFolderColors()
         {
             EditorApplication.projectWindowItemOnGUI += OnProjectWindowItemGUI;
-            EditorApplication.projectChanged += () => _settings = null;
+            
+            // Update selection cache immediately when project structure changes (e.g. creating ScriptableObjects)
+            EditorApplication.projectChanged += () => 
+            {
+                _settings = null;
+                UpdateSelectionCache();
+            };
             
             // Cache selection changes to avoid array allocations inside OnGUI
             Selection.selectionChanged += UpdateSelectionCache;
@@ -39,19 +45,25 @@ namespace GameLib
             if (rect.height > 20)
                 return;
 
+            // FIX 1: Use 'editingTextField' instead of 'isEditingTextField'
+            if (Event.current.type != EventType.Repaint || EditorGUIUtility.editingTextField)
+                return;
+
             var settings = GetSettings();
             if (settings == null || settings.Rules.Count == 0)
                 return;
 
             string path = AssetDatabase.GUIDToAssetPath(guid);
-            if (string.IsNullOrEmpty(path))
+            
+            // Ignore uninitialized assets or temporary files during creation
+            if (string.IsNullOrEmpty(path) || path.EndsWith(".tmp"))
                 return;
 
             bool isFolder = AssetDatabase.IsValidFolder(path);
             string fullFileName = Path.GetFileName(path);
             string displayName = isFolder ? fullFileName : Path.GetFileNameWithoutExtension(path);
 
-            // O(1) allocation-free selection lookup
+            // FIX 2: Clean O(1) lookup using only the synced cache
             bool selected = _selectedGuids.Contains(guid);
             Color? targetColor = null;
 
@@ -61,7 +73,6 @@ namespace GameLib
                 if (string.IsNullOrWhiteSpace(rule.Wildcard))
                     continue;
 
-                // High-performance wildcard match without Regex allocations
                 if (!FastWildcardMatch(fullFileName, rule.Wildcard))
                     continue;
 
@@ -74,7 +85,6 @@ namespace GameLib
 
         private static void DrawAssetLabel(Rect rect, string text, Color? customColor, bool selected)
         {
-            // Initialize cached style once
             if (_cachedStyle == null)
             {
                 _cachedStyle = new GUIStyle(EditorStyles.label)
@@ -85,7 +95,6 @@ namespace GameLib
 
             Color textColor = customColor ?? (selected ? Color.white : EditorStyles.label.normal.textColor);
             
-            // Modify cached style state
             _cachedStyle.normal.textColor = textColor;
             _cachedStyle.hover.textColor = textColor;
             _cachedStyle.focused.textColor = textColor;
@@ -117,7 +126,6 @@ namespace GameLib
             GUI.Label(rect, text, _cachedStyle);
         }
 
-        /// Allocation-free wildcard string matching for standard '*' and '?' patterns.
         private static bool FastWildcardMatch(ReadOnlySpan<char> input, ReadOnlySpan<char> pattern)
         {
             int inputIdx = 0;
