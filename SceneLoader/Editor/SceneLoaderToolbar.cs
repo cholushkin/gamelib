@@ -24,7 +24,7 @@ namespace GameLib.Editor
             SceneSequenceController.RefreshSequences();
 
             // Using clean emoji/text labels instead of texture loading
-            playButtonContent = new GUIContent("\u25b6\ufe0fDEV", "Play selected scene sequence with dependencies (Override)");
+            playButtonContent = new GUIContent("▶️DEV", "Play selected scene sequence with dependencies (Override)");
             dropdownButtonContent = new GUIContent(GetDropdownLabel(), "Select scene loading sequence");
 
             var toolbar = new IMGUIContainer(OnGUI);
@@ -35,20 +35,23 @@ namespace GameLib.Editor
 
         private void OnGUI()
         {
-            // Widened container slightly from 160 to 185 to comfortably fit the "🞂DEV" text label
-            GUILayout.BeginHorizontal(GUILayout.Width(185));
+            // Widened container
+            GUILayout.BeginHorizontal(GUILayout.Width(250));
 
             // Dropdown Selector Button
             dropdownButtonContent.text = GetDropdownLabel();
-            if (GUILayout.Button(dropdownButtonContent, EditorStyles.toolbarButton, GUILayout.Width(135)))
+            if (GUILayout.Button(dropdownButtonContent, EditorStyles.toolbarButton, GUILayout.Width(200)))
             {
                 SceneSequenceController.RefreshSequences();
                 ShowDropdown();
             }
 
+            
             // Play Sequence Button (DEV)
             if (GUILayout.Button(playButtonContent, EditorStyles.toolbarButton, GUILayout.Width(45)))
             {
+                // Erase release flag when running a custom DEV sequence
+                SessionState.EraseBool("SceneLoaderRunRelease");
                 SceneSequenceController.RunSelectedSequence();
             }
 
@@ -72,7 +75,7 @@ namespace GameLib.Editor
 
         private string GetDropdownLabel()
         {
-            const int maxVisibleChars = 12;
+            const int maxVisibleChars = 24;
             string lastSelectedSequence = SceneSequenceController.CurrentSequence;
 
             if (string.IsNullOrEmpty(lastSelectedSequence))
@@ -103,20 +106,20 @@ namespace GameLib.Editor
 
         public EditorPlayAsRelease()
         {
-            // Clean text-based release play button without external texture dependencies
-            text = "\u25b6\ufe0fREL";
-            tooltip = "Play the game as it will run in RELEASE (Default Sequence from Index 0)";
+            text = "▶️REL";
+            tooltip = "Play the game from Boot using the RELEASE Default Sequence";
             clicked += OnClick;
         }
 
         private void OnClick()
         {
-            EditorSceneManager.playModeStartScene = null;
-            SessionState.EraseString("SceneLoaderSequenceOverride");
-
             if (Application.isPlaying) return;
-
-            Debug.Log("[SceneLoader] Running standard release scene order (Index 0 Default)");
+        
+            Debug.Log("[SceneLoader] Forcing Play Mode to RELEASE (Boot -> Default Sequence)");
+            // Set an explicit Release flag in SessionState
+            SessionState.SetBool("SceneLoaderRunRelease", true);
+            SessionState.EraseString("SceneLoaderSequenceOverride");
+        
             SceneSequenceController.RunStartScene();
         }
     }

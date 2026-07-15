@@ -55,19 +55,33 @@ namespace GameLib
         public void Initialize()
         {
 #if UNITY_EDITOR
-            // Check if we launched Play Mode via the custom Editor Toolbar with a specific sequence override
+            // 1. Check if launched via Toolbar DEV button (Custom Sequence Override)
             var overrideSeq = SessionState.GetString(OverrideKeyName, null);
             SessionState.EraseString(OverrideKeyName);
-
             if (!string.IsNullOrEmpty(overrideSeq))
             {
+                Debug.Log($"[SceneLoader] Editor DEV Override detected. Loading sequence: '{overrideSeq}'");
                 LoadSequenceAsync(overrideSeq).Forget();
                 return;
             }
+
+            // 2. Check if launched via Toolbar REL button (Explicit Release Mode)
+            bool runRelease = SessionState.GetBool("SceneLoaderRunRelease", false);
+            SessionState.EraseBool("SceneLoaderRunRelease");
+    
+            // If we simply clicked the standard Unity Play button in the Editor, DO NOTHING!
+            // Let the currently opened scene hierarchy run exactly as-is without interference.
+            if (!runRelease)
+            {
+                Debug.Log("[SceneLoader] Standard Unity Play detected. Running open hierarchy without sequence overrides.");
+                return;
+            }
 #endif
-            // If no editor override was requested, trigger the default sequence defined in our ScriptableObject
+
+            // 3. Standalone Player OR Editor Release Mode: Load Default Sequence
             if (_sequenceConfig != null && !string.IsNullOrEmpty(_sequenceConfig.DefaultSequence))
             {
+                Debug.Log($"[SceneLoader] Launching Default Sequence: '{_sequenceConfig.DefaultSequence}'");
                 LoadSequenceAsync(_sequenceConfig.DefaultSequence).Forget();
             }
         }
