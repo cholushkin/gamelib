@@ -12,7 +12,8 @@
         "Unity.Addressables",
         "Unity.ResourceManager",
         "VContainer",
-        "Alchemy"
+        "Alchemy",
+        "UniTask.Addressables"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

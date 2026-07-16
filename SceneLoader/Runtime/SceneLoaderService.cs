@@ -1,13 +1,14 @@
-// todo: Add Addressables support to allow loading remote or asset-bundled scenes without relying on Build Settings indices.
-// todo: Implement global lifecycle events (e.g., OnSequenceLoadStarted, OnSequenceLoadCompleted) so UI loading screens can listen without tight coupling.
-// todo: Add a configurable timeout to UniTask scene load operations to gracefully abort if a scene hangs during initialization.
-// idea: Consider adding an optional "preload" mechanism for heavy additive scenes to reduce frame drops during level transitions.
-
+// todo: Implement global lifecycle event callbacks (e.g., OnSequenceLoadStarted, OnSequenceLoadCompleted) so UI loading screens can listen without tight coupling.
+// todo: Add a configurable timeout to UniTask Addressable scene load operations to gracefully abort if a scene hang occurs during initialization.
+// idea: Consider adding an optional "preload" mechanism for heavy additive Addressable scenes to download asset bundles in the background before activating.
 using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
+using UnityEngine.ResourceManagement.AsyncOperations;
+using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.SceneManagement;
 using VContainer;
 using VContainer.Unity;
@@ -21,18 +22,20 @@ namespace GameLib
     public class SceneLoaderService : ISceneLoaderService, IInitializable
     {
         private const string OverrideKeyName = "SceneLoaderSequenceOverride";
-
+        
         private readonly SceneSequenceConfig _sequenceConfig;
         private readonly SceneDependencyConfig _dependencyConfig;
         private readonly LifetimeScope _rootScope;
+
+        // Tracks VContainer scopes by Addressable RuntimeKey
+        private readonly Dictionary<string, LifetimeScope> _loadedScopes = new(StringComparer.OrdinalIgnoreCase);
         
-        // Tracks active scene scopes by scene name so child scenes know which parent scope to link to
-        private readonly Dictionary<string, LifetimeScope> _loadedScopes = new Dictionary<string, LifetimeScope>(StringComparer.OrdinalIgnoreCase);
+        // Tracks Addressable scene load instances for safe unloading
+        private readonly Dictionary<string, SceneInstance> _loadedSceneInstances = new(StringComparer.OrdinalIgnoreCase);
 
         private int _busyCounter;
         public bool IsBusy => _busyCounter > 0;
 
-        // VContainer injects our configs and the root scope directly into the constructor
         [Inject]
         public SceneLoaderService(
             SceneSequenceConfig sequenceConfig,
@@ -43,7 +46,7 @@ namespace GameLib
             _dependencyConfig = dependencyConfig;
             _rootScope = rootScope;
 
-            // Register the entry-point scene (usually index 0, e.g., "Main") as our root scope
+            // Register root scene
             var activeSceneName = SceneManager.GetActiveScene().name;
             if (!string.IsNullOrEmpty(activeSceneName) && _rootScope != null)
             {
@@ -51,11 +54,9 @@ namespace GameLib
             }
         }
 
-        // Called automatically by VContainer as soon as the application / root scope starts
         public void Initialize()
         {
 #if UNITY_EDITOR
-            // 1. Check if launched via Toolbar DEV button (Custom Sequence Override)
             var overrideSeq = SessionState.GetString(OverrideKeyName, null);
             SessionState.EraseString(OverrideKeyName);
             if (!string.IsNullOrEmpty(overrideSeq))
@@ -65,20 +66,15 @@ namespace GameLib
                 return;
             }
 
-            // 2. Check if launched via Toolbar REL button (Explicit Release Mode)
             bool runRelease = SessionState.GetBool("SceneLoaderRunRelease", false);
             SessionState.EraseBool("SceneLoaderRunRelease");
-    
-            // If we simply clicked the standard Unity Play button in the Editor, DO NOTHING!
-            // Let the currently opened scene hierarchy run exactly as-is without interference.
+
             if (!runRelease)
             {
                 Debug.Log("[SceneLoader] Standard Unity Play detected. Running open hierarchy without sequence overrides.");
-                return;
+                return; 
             }
 #endif
-
-            // 3. Standalone Player OR Editor Release Mode: Load Default Sequence
             if (_sequenceConfig != null && !string.IsNullOrEmpty(_sequenceConfig.DefaultSequence))
             {
                 Debug.Log($"[SceneLoader] Launching Default Sequence: '{_sequenceConfig.DefaultSequence}'");
@@ -86,7 +82,7 @@ namespace GameLib
             }
         }
 
-        public async UniTask<SceneLoadResult> LoadSequenceAsync(string sequenceName, IProgress<float> progress = null, CancellationToken cancellationToken = default)
+        public async UniTask<SceneLoadResult> LoadSequenceAsync(string sequenceName, IProgress<float> progress = null, CancellationToken ct = default)
         {
             var startTime = Time.realtimeSinceStartup;
             var sequence = _sequenceConfig.GetSequence(sequenceName);
@@ -99,57 +95,34 @@ namespace GameLib
             _busyCounter++;
             try
             {
-                // Inspect the target scenes and build a complete, deduplicated loading queue including parent dependencies
-                var scenesToLoad = ResolveLoadQueue(sequence.TargetScenes);
+                // Inspect target scenes using our new Step 2 helper method
+                var scenesToLoad = ResolveLoadQueue(sequence.GetTargetKeys());
                 int totalScenes = scenesToLoad.Count;
                 int scenesLoadedCount = 0;
 
                 for (int i = 0; i < totalScenes; i++)
                 {
-                    string sceneName = scenesToLoad[i];
+                    string sceneKey = scenesToLoad[i];
 
-                    // If a dependency scene is already open (e.g., Boot or System scene), skip loading but cache its scope
-                    if (SceneManager.GetSceneByName(sceneName).isLoaded)
+                    // If already loaded via Addressables, skip loading but ensure scope is tracked
+                    if (_loadedSceneInstances.ContainsKey(sceneKey))
                     {
-                        var loadedScene = SceneManager.GetSceneByName(sceneName);
-                        var existingScope = FindScopeInScene(loadedScene);
-                        if (existingScope != null)
-                        {
-                            _loadedScopes[sceneName] = existingScope;
-                        }
-                        continue;
+                        continue; 
                     }
 
-                    // Check if this specific scene should become the active Unity scene after loading
-                    bool makeActive = string.Equals(sequence.ActiveSceneName, sceneName, StringComparison.OrdinalIgnoreCase);
-                    
-                    // Map the individual scene load progress into the overall sequence progress (0.0 to 1.0)
+                    bool makeActive = string.Equals(sequence.GetActiveSceneKey(), sceneKey, StringComparison.OrdinalIgnoreCase);
                     var stepProgress = progress != null ? Cysharp.Threading.Tasks.Progress.Create<float>(p => progress.Report((i + p) / totalScenes)) : null;
 
-                    var stepResult = await LoadSceneWithDependencyLinkingAsync(sceneName, makeActive, stepProgress, cancellationToken);
+                    var stepResult = await LoadSceneWithDependencyLinkingAsync(sceneKey, makeActive, stepProgress, ct);
                     if (!stepResult.Success)
                     {
-                        return SceneLoadResult.Failed(sequenceName, Time.realtimeSinceStartup - startTime, $"Failed loading dependency '{sceneName}': {stepResult.ErrorMessage}");
+                        return SceneLoadResult.Failed(sequenceName, Time.realtimeSinceStartup - startTime, stepResult.ErrorMessage);
                     }
 
                     scenesLoadedCount++;
                 }
 
-                // Explicitly activate the requested target scene if specified
-                if (!string.IsNullOrEmpty(sequence.ActiveSceneName))
-                {
-                    var activeScene = SceneManager.GetSceneByName(sequence.ActiveSceneName);
-                    if (activeScene.IsValid())
-                    {
-                        SceneManager.SetActiveScene(activeScene);
-                    }
-                }
-
                 return SceneLoadResult.Succeeded(sequenceName, Time.realtimeSinceStartup - startTime, scenesLoadedCount);
-            }
-            catch (OperationCanceledException)
-            {
-                return SceneLoadResult.Cancelled(sequenceName, Time.realtimeSinceStartup - startTime);
             }
             catch (Exception ex)
             {
@@ -161,46 +134,56 @@ namespace GameLib
             }
         }
 
-        public async UniTask<SceneLoadResult> LoadSceneAsync(string sceneName, bool makeActive = false, IProgress<float> progress = null, CancellationToken cancellationToken = default)
+        public async UniTask<SceneLoadResult> LoadSceneAsync(string sceneName, bool makeActive = false, IProgress<float> progress = null, CancellationToken ct = default)
         {
             _busyCounter++;
-            try
-            {
-                return await LoadSceneWithDependencyLinkingAsync(sceneName, makeActive, progress, cancellationToken);
+            try 
+            { 
+                return await LoadSceneWithDependencyLinkingAsync(sceneName, makeActive, progress, ct); 
             }
-            finally
-            {
-                _busyCounter--;
+            finally 
+            { 
+                _busyCounter--; 
             }
         }
 
-        public async UniTask<SceneLoadResult> UnloadSceneAsync(string sceneName, CancellationToken cancellationToken = default)
+        public async UniTask<SceneLoadResult> UnloadSceneAsync(string sceneName, CancellationToken ct = default)
         {
             _busyCounter++;
             var startTime = Time.realtimeSinceStartup;
             try
             {
-                await SceneManager.UnloadSceneAsync(sceneName).ToUniTask(cancellationToken: cancellationToken);
-                
-                // Remove the cached scope so we don't attempt to parent new scenes to a destroyed scope
-                _loadedScopes.Remove(sceneName);
-                return SceneLoadResult.Succeeded(sceneName, Time.realtimeSinceStartup - startTime, 1);
-            }
-            catch (OperationCanceledException)
-            {
-                return SceneLoadResult.Cancelled(sceneName, Time.realtimeSinceStartup - startTime);
+                // --- PARENT UNLOAD SAFETY CHECK ---
+                if (IsSceneRequiredByActiveChild(sceneName, out string dependentChild))
+                {
+                    string err = $"Cannot unload '{sceneName}' because active scene '{dependentChild}' depends on its DI container!";
+                    Debug.LogError($"[SceneLoader Safety] {err}");
+                    return SceneLoadResult.Failed(sceneName, 0f, err);
+                }
+
+                if (_loadedSceneInstances.TryGetValue(sceneName, out var sceneInstance))
+                {
+                    var op = Addressables.UnloadSceneAsync(sceneInstance);
+                    await op.ToUniTask(cancellationToken: ct);
+                    
+                    _loadedSceneInstances.Remove(sceneName);
+                    _loadedScopes.Remove(sceneName);
+                    return SceneLoadResult.Succeeded(sceneName, Time.realtimeSinceStartup - startTime, 1);
+                }
+
+                return SceneLoadResult.Failed(sceneName, 0f, $"Scene '{sceneName}' is not tracked as an active Addressable scene.");
             }
             catch (Exception ex)
             {
                 return SceneLoadResult.Failed(sceneName, Time.realtimeSinceStartup - startTime, ex.Message);
             }
-            finally
-            {
-                _busyCounter--;
+            finally 
+            { 
+                _busyCounter--; 
             }
         }
 
-        public async UniTask<SceneLoadResult> ReplaceSceneAsync(string loadScene, string unloadScene, bool makeActive = false, IProgress<float> progress = null, CancellationToken cancellationToken = default)
+        public async UniTask<SceneLoadResult> ReplaceSceneAsync(string loadScene, string unloadScene, bool makeActive = false, IProgress<float> progress = null, CancellationToken ct = default)
         {
             _busyCounter++;
             var startTime = Time.realtimeSinceStartup;
@@ -209,57 +192,98 @@ namespace GameLib
                 int loadedCount = 0;
                 if (!string.IsNullOrEmpty(loadScene))
                 {
-                    var loadResult = await LoadSceneWithDependencyLinkingAsync(loadScene, makeActive, progress, cancellationToken);
-                    if (!loadResult.Success)
-                    {
-                        return loadResult;
-                    }
+                    var loadResult = await LoadSceneWithDependencyLinkingAsync(loadScene, makeActive, progress, ct);
+                    if (!loadResult.Success) return loadResult;
                     loadedCount++;
                 }
 
                 if (!string.IsNullOrEmpty(unloadScene))
                 {
-                    await SceneManager.UnloadSceneAsync(unloadScene).ToUniTask(cancellationToken: cancellationToken);
-                    _loadedScopes.Remove(unloadScene);
+                    // Safety check runs automatically inside UnloadSceneAsync
+                    await UnloadSceneAsync(unloadScene, ct); 
                 }
 
                 return SceneLoadResult.Succeeded($"{loadScene} (replaced {unloadScene})", Time.realtimeSinceStartup - startTime, loadedCount);
             }
-            catch (OperationCanceledException)
-            {
-                return SceneLoadResult.Cancelled($"{loadScene}/{unloadScene}", Time.realtimeSinceStartup - startTime);
-            }
-            catch (Exception ex)
-            {
-                return SceneLoadResult.Failed($"{loadScene}/{unloadScene}", Time.realtimeSinceStartup - startTime, ex.Message);
-            }
-            finally
-            {
-                _busyCounter--;
+            finally 
+            { 
+                _busyCounter--; 
             }
         }
 
-        // Recursively inspects SceneDependencyConfig to build an ordered list where parents ALWAYS load before children
+        private async UniTask<SceneLoadResult> LoadSceneWithDependencyLinkingAsync(string sceneKey, bool makeActive, IProgress<float> progress, CancellationToken ct)
+        {
+            var startTime = Time.realtimeSinceStartup;
+            var parents = _dependencyConfig.GetRequiredParents(sceneKey);
+            
+            string immediateParentKey = parents.Count > 0 ? parents[parents.Count - 1] : null;
+            LifetimeScope parentScope = _rootScope;
+            
+            if (!string.IsNullOrEmpty(immediateParentKey) && _loadedScopes.TryGetValue(immediateParentKey, out var foundScope))
+            {
+                parentScope = foundScope;
+            }
+
+            SceneInstance sceneInstance;
+            using (LifetimeScope.EnqueueParent(parentScope))
+            {
+                // --- ADDRESSABLES ASYNC LOADING ---
+                var op = Addressables.LoadSceneAsync(sceneKey, LoadSceneMode.Additive, activateOnLoad: true);
+                sceneInstance = await op.ToUniTask(progress: progress, cancellationToken: ct);
+            }
+
+            _loadedSceneInstances[sceneKey] = sceneInstance;
+
+            var newScope = FindScopeInScene(sceneInstance.Scene);
+            if (newScope != null)
+            {
+                _loadedScopes[sceneKey] = newScope;
+            }
+
+            if (makeActive && sceneInstance.Scene.IsValid())
+            {
+                SceneManager.SetActiveScene(sceneInstance.Scene);
+            }
+
+            return SceneLoadResult.Succeeded(sceneKey, Time.realtimeSinceStartup - startTime, 1);
+        }
+
+        // Checks if any currently loaded scene requires the target scene as a parent
+        private bool IsSceneRequiredByActiveChild(string targetSceneKey, out string dependentChild)
+        {
+            dependentChild = null;
+            foreach (var loadedSceneKey in _loadedScopes.Keys)
+            {
+                if (string.Equals(loadedSceneKey, targetSceneKey, StringComparison.OrdinalIgnoreCase)) continue;
+
+                var parents = _dependencyConfig.GetRequiredParents(loadedSceneKey);
+                if (parents.Contains(targetSceneKey))
+                {
+                    dependentChild = loadedSceneKey;
+                    return true;
+                }
+            }
+            return false;
+        }
+
         private List<string> ResolveLoadQueue(List<string> targetScenes)
         {
             var queue = new List<string>();
             var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            void AddWithDependencies(string sceneName)
+            void AddWithDependencies(string sceneKey)
             {
-                if (visited.Contains(sceneName)) return;
-
-                var parents = _dependencyConfig.GetRequiredParents(sceneName);
+                if (string.IsNullOrEmpty(sceneKey) || visited.Contains(sceneKey)) return;
+                var parents = _dependencyConfig.GetRequiredParents(sceneKey);
                 foreach (var parent in parents)
                 {
                     AddWithDependencies(parent);
                 }
-
-                visited.Add(sceneName);
-                queue.Add(sceneName);
+                visited.Add(sceneKey);
+                queue.Add(sceneKey);
             }
 
-            foreach (var target in targetScenes)
+            foreach (var target in targetScenes) 
             {
                 AddWithDependencies(target);
             }
@@ -267,49 +291,9 @@ namespace GameLib
             return queue;
         }
 
-        // Handles loading a single additive scene while instructing VContainer to link its DI hierarchy
-        private async UniTask<SceneLoadResult> LoadSceneWithDependencyLinkingAsync(string sceneName, bool makeActive, IProgress<float> progress, CancellationToken ct)
-        {
-            var startTime = Time.realtimeSinceStartup;
-            var parents = _dependencyConfig.GetRequiredParents(sceneName);
-            
-            // Identify the immediate parent scene from our dependency rules (the last item in the required parents list)
-            string immediateParentName = parents.Count > 0 ? parents[parents.Count - 1] : null;
-
-            LifetimeScope parentScope = _rootScope;
-            if (!string.IsNullOrEmpty(immediateParentName) && _loadedScopes.TryGetValue(immediateParentName, out var foundScope))
-            {
-                parentScope = foundScope;
-            }
-
-            // Tell VContainer: "When the next LifetimeScope awakens in the new scene, set its parent to parentScope"
-            using (LifetimeScope.EnqueueParent(parentScope))
-            {
-                var op = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
-                await op.ToUniTask(progress: progress, cancellationToken: ct);
-            }
-
-            // Locate and cache the newly loaded scope so future child scenes can link to it
-            var newlyLoadedScene = SceneManager.GetSceneByName(sceneName);
-            var newScope = FindScopeInScene(newlyLoadedScene);
-            if (newScope != null)
-            {
-                _loadedScopes[sceneName] = newScope;
-            }
-
-            if (makeActive && newlyLoadedScene.IsValid())
-            {
-                SceneManager.SetActiveScene(newlyLoadedScene);
-            }
-
-            return SceneLoadResult.Succeeded(sceneName, Time.realtimeSinceStartup - startTime, 1);
-        }
-
-        // Scans the root GameObjects of a scene to find its VContainer LifetimeScope component
         private LifetimeScope FindScopeInScene(Scene scene)
         {
             if (!scene.IsValid() || !scene.isLoaded) return null;
-
             foreach (var go in scene.GetRootGameObjects())
             {
                 if (go.TryGetComponent<LifetimeScope>(out var scope))

@@ -1,0 +1,275 @@
+### FILE LIST (8 files discovered):
+D:\projects\dev\target-one\Unity\TargetOne\Assets\Libs\gamelib\VContainerSupport\Documentation\ModularInstallersPattern-idea.md
+D:\projects\dev\target-one\Unity\TargetOne\Assets\Libs\gamelib\VContainerSupport\Documentation\ModularInstallersPattern-idea.md.meta
+D:\projects\dev\target-one\Unity\TargetOne\Assets\Libs\gamelib\VContainerSupport\Documentation\VContainerSupport.md
+D:\projects\dev\target-one\Unity\TargetOne\Assets\Libs\gamelib\VContainerSupport\Documentation\VContainerSupport.md.meta
+D:\projects\dev\target-one\Unity\TargetOne\Assets\Libs\gamelib\VContainerSupport\Documentation.meta
+D:\projects\dev\target-one\Unity\TargetOne\Assets\Libs\gamelib\VContainerSupport\GameLibCoreBundleInstaller.cs
+D:\projects\dev\target-one\Unity\TargetOne\Assets\Libs\gamelib\VContainerSupport\GameLibCoreBundleInstaller.cs.meta
+D:\projects\dev\target-one\Unity\TargetOne\Assets\Libs\gamelib\VContainerSupport\VContainerSupport.log
+
+### FILES CONTENT:
+<file path="D:\projects\dev\target-one\Unity\TargetOne\Assets\Libs\gamelib\VContainerSupport\Documentation\ModularInstallersPattern-idea.md">
+# Modular Feature Architecture: The "Standard Installers" Pattern
+
+In standard **VContainer** workflows, a scene's features (such as spawners, UI controllers, and level presenters) are defined natively in C# inside that scene's local `LifetimeScope.Configure(builder)` method.
+
+The **Standard Installers Pattern** is an advanced architectural alternative where a scene's standard features are pulled out of C# code and encapsulated into modular, data-driven **`ScriptableObjectInstaller`** assets.
+
+---
+
+## ⚖️ Architectural Comparison
+
+| Approach | Where Features are Defined | Best Used For |
+| :--- | :--- | :--- |
+| **Local Scope (Default)** | Hardcoded in C# (`GameplayLevelScope.cs`) | Standard games with unique, distinct scenes (e.g., Main Menu, Boss Arena, Tutorial). |
+| **Standard Installers** | Modular assets (`ScriptableObjectInstaller`) assigned in the Unity Inspector or a central config. | Massive scale games, procedural content, DLCs, or games with 100+ similar levels. |
+
+---
+
+## 🎯 Why Use Standard Installers? (The Scaling Problem)
+
+Imagine your game has **100 dungeon levels**. Writing 100 different C# classes (`Level01Scope.cs` through `Level100Scope.cs`) violates the DRY (Don't Repeat Yourself) principle and creates massive maintenance overhead.
+
+With **Standard Installers**, you write **one generic script** (`ConfigurableLevelScope.cs`) and mix-and-match modular feature assets in the Unity Inspector:
+
+* **Level 01 Assets:** `[BasicEnemyInstaller]`, `[ForestAudioInstaller]`
+* **Level 50 Assets:** `[EliteEnemyInstaller]`, `[LavaAudioInstaller]`, `[EnvironmentalHazardsInstaller]`
+
+This allows game designers to assemble and configure entirely new level architectures without touching or recompiling C# scripts.
+
+---
+
+## 🔄 Execution Flow: Standard vs. Fallback
+
+When combining **Standard Installers** with our isolated testing framework, installers are divided into two clear responsibilities:
+
+```text
+       [Scene Loaded / Play Pressed]
+                     │
+                     ▼
+  1. Run STANDARD Installers (ALWAYS RUN)
+     ├── Defines what the scene IS.
+     └── Registers level enemies, local UI, quest objectives, and spawners.
+                     │
+                     ▼
+  2. Is Parent Scope Missing? (Parent == null?)
+     ├── YES ──► Run FALLBACK Installers (ONLY RUN IN ISOLATION)
+     │           └── Defines what the scene LACKS (injects Mock Audio & Save Data).
+     └── NO  ──► Do Nothing
+                 └── Inherit real Audio & Save Data cleanly from the parent System scene.
+
+```
+
+---
+
+## 💻 Code Implementation Example
+
+To implement this pattern, replace hardcoded DI bindings with an iterative installer loop:
+
+```csharp
+using System.Collections.Generic;
+using UnityEngine;
+using VContainer;
+using VContainer.Unity;
+using GameLib;
+
+namespace Game
+{
+    public class ConfigurableLevelScope : LifetimeScope
+    {
+        [Header("What This Scene IS (Always Run)")]
+        [SerializeField] private List<ScriptableObjectInstaller> standardInstallers = new();
+
+        [Header("What This Scene LACKS (Run Only Without Parents)")]
+        [SerializeField] private List<ScriptableObjectInstaller> fallbackInstallers = new();
+
+        protected override void Configure(IContainerBuilder builder)
+        {
+            // 1. ALWAYS install modular standard features required by this level
+            foreach (var installer in standardInstallers)
+            {
+                installer?.Install(builder);
+            }
+
+            // 2. ONLY install fallback mocks if we launched in isolation (Parent == null)
+            if (Parent == null)
+            {
+                foreach (var installer in fallbackInstallers)
+                {
+                    installer?.Install(builder);
+                }
+            }
+        }
+    }
+}
+
+```
+
+---
+
+## 💡 Summary: Should You Adopt This Now?
+
+* **Adopt Standard Installers IF:** You are building a large-scale project where many scenes share overlapping combinations of systems, or you want game designers to construct DI containers via Unity assets.
+* **Avoid Standard Installers IF:** You are building a small-to-medium project. For most games, keeping standard bindings directly inside a local `LifetimeScope.cs` script is cleaner, easier to debug, and avoids overcomplication.
+
+</file>
+
+<file path="D:\projects\dev\target-one\Unity\TargetOne\Assets\Libs\gamelib\VContainerSupport\Documentation\VContainerSupport.md">
+# GameLib VContainer & SceneLoader Support
+
+This guide outlines how game projects consume **GameLib**, organize Dependency Injection (DI) scopes using **VContainer**, and manage additive scene loading workflows.
+
+---
+
+## 🏗️ Domain Separation: GameLib vs. Game
+
+To maintain clean architecture and prevent coupling, keep code boundaries strict:
+
+| Domain | Directory | Responsibility | Examples |
+| :--- | :--- | :--- | :--- |
+| **`GameLib`** *(Engine / Framework)* | `Assets/Libs/gamelib/` | Reusable, game-agnostic core services. Never references project gameplay classes. | `SceneLoaderService`, `ConfigSystem`, `AudioEngine`, `SaveSystem` |
+| **`Game`** *(Project Domain)* | `Assets/Game/` | Game-specific logic, level design, UI presenters, and gameplay rules. | `PlayerController`, `EnemyAI`, `MainMenuPresenter`, `QuestManager` |
+
+---
+
+## 📦 How Your Game Consumes GameLib
+
+In your game project's root scope, use **`GameLibCoreBundleInstaller`** to register the entire foundational framework stack in a single step.
+
+Because VContainer defines the `Install` method on the installer itself rather than on `IContainerBuilder`, invoke `.Install(builder)` natively on your instantiated class. Use C#'s object initializer syntax to pass configurations and opt out of unused subsystems:
+
+```csharp
+using UnityEngine;
+using VContainer;
+using VContainer.Unity;
+using GameLib;
+
+namespace Game
+{
+    public class BootSceneScope : LifetimeScope
+    {
+        [Header("Scene Loader Configs")]
+        [SerializeField] private SceneSequenceConfig sequenceConfig;
+        [SerializeField] private SceneDependencyConfig dependencyConfig;
+
+        protected override void Configure(IContainerBuilder builder)
+        {
+            // 1. Register root scope for DI fallback resolution
+            builder.RegisterInstance<LifetimeScope>(this);
+
+            // 2. Install GameLib core framework (registers SceneLoaderService & Configs)
+            new GameLibCoreBundleInstaller
+            {
+                IncludeConfigSystem = true,
+                SequenceConfig = sequenceConfig,
+                DependencyConfig = dependencyConfig
+            }.Install(builder);
+
+            // 3. Install project-specific root systems below:
+            // new MyGameGlobalAnalyticsInstaller().Install(builder);
+        }
+    }
+}
+
+```
+
+---
+
+## 🎯 Scope & Service Distribution (3-Tier Architecture)
+
+Our additive scene structure is organized into three distinct DI hierarchy tiers. Each scene inherits all services registered in its parent scopes:
+
+```
+[Index 0: Boot Scene]   --> BootSceneScope (Root Container)
+         │                  └─ Installs: GameLibCoreBundleInstaller (SceneLoader, Configs)
+         ▼
+[Index 1: System Scene] --> SystemSceneScope (Global Persistent Systems)
+         │                  └─ Installs: AudioService, InputService, SaveService, EventBus
+         ├──────────────────────────────┬──────────────────────────────┐
+         ▼                              ▼                              ▼
+[Index 2: Debug Scene]      [Index 3: CompanyLogo]        [Index 4: Game Level]
+DebugSceneScope             LogoSceneScope                GameplayLevelScope
+└─ IDevConsole, Cheats      └─ VideoPlayerPresenter       └─ Spawners, Level UI, Fallback Mocks
+
+```
+
+### Tier Breakdown
+
+1. **`Boot` (Index 0):** The indestructible root. Never unloads. Hosts the `SceneLoaderService` and central ScriptableObject manifests.
+2. **`System` (Index 1):** The global services container. Loaded immediately by the sequence loader. Contains persistent systems like Audio, Input, and User Saves.
+3. **`Game` / `Level` (Index 2+):** Transient gameplay or UI scenes. Loaded and unloaded dynamically. Parented to `System` so they can inject global services without global singletons.
+
+---
+
+## 🎮 Play Mode Workflows & Developer Toolbar
+
+Our system provides three distinct ways to run the game in the Unity Editor, designed to eliminate friction during level design and debugging:
+
+| Play Mode | Trigger | Behavior & Lifecycle |
+| --- | --- | --- |
+| **Standard Unity Play** | Standard Unity Play Button or `Ctrl+P` | **Zero Interference Mode.** Runs *only* the scenes currently open in your hierarchy. Does not force sequences or jump to `Boot`. If inside an isolated level scene, automatically installs centralized mock fallbacks. |
+| **Release Play (`▶️ REL`)** | Custom Toolbar Overlay | **Production Simulation Mode.** Boots from Index 0 (`Boot`), ignores overrides, and executes the `DefaultSequence` (e.g., `RELEASE` -> loads `System`, `Debug`, `CompanyLogo`). |
+| **Sequence Override (`▶️ DEV`)** | Custom Toolbar Overlay | **Targeted Sequence Mode.** Select a named sequence from the dropdown (e.g., `Gameplay_Test`), click `▶️ DEV`, and the engine boots Index 0 before immediately loading your targeted sequence. |
+
+---
+
+## 🧪 Centralized Fallback Testing (`SceneDependencyConfig`)
+
+When a developer opens a level scene (e.g., `Level_01`) in isolation and hits standard Play, parent scopes like `System` do not exist. To prevent missing dependency crashes without cluttering scene inspectors, **all mock/fallback services are defined centrally in `SceneDependencyConfig**`.
+
+### How to Create & Configure Fallbacks
+
+1. **Create Concrete Installers:** In your project domain, inherit from `ScriptableObjectInstaller` and add the `[CreateAssetMenu]` attribute:
+```csharp
+[CreateAssetMenu(fileName = "MockAudioInstaller", menuName = "Game/Fallbacks/Mock Audio")]
+public class MockAudioInstaller : ScriptableObjectInstaller
+{
+    public override void Install(IContainerBuilder builder)
+    {
+        // Register dummy/mock services here for isolated testing
+    }
+}
+
+```
+
+
+2. **Generate Asset:** Right-click in Unity's Project window -> **Create** -> **Game** -> **Fallbacks** -> **Mock Audio**.
+3. **Assign in Manifest:** Open your `SceneDependencyConfig` asset, locate your target scene entry under **Dependencies**, and drop your created asset into the **Fallback Installers** array.
+
+When `GameplayLevelScope` detects it is running orphaned (`Parent == null`), it automatically fetches and installs its assigned mock modules from this central manifest!
+</file>
+
+<file path="D:\projects\dev\target-one\Unity\TargetOne\Assets\Libs\gamelib\VContainerSupport\GameLibCoreBundleInstaller.cs">
+using UnityEngine;
+using VContainer;
+using VContainer.Unity;
+
+namespace GameLib
+{
+    public class GameLibCoreBundleInstaller : IInstaller
+    {
+        public bool IncludeConfigSystem { get; set; } = true;
+        public SceneSequenceConfig SequenceConfig { get; set; }
+        public SceneDependencyConfig DependencyConfig { get; set; }
+
+        public void Install(IContainerBuilder builder)
+        {
+            if (IncludeConfigSystem)
+            {
+                new ConfigSystemInstaller().Install(builder);
+            }
+
+            // Register SceneLoader configurations if assigned
+            if (SequenceConfig != null) builder.RegisterInstance(SequenceConfig);
+            if (DependencyConfig != null) builder.RegisterInstance(DependencyConfig);
+
+            // Register SceneLoaderService as ISceneLoaderService and IInitializable (for auto-start)
+            builder.Register<SceneLoaderService>(Lifetime.Singleton)
+                .AsImplementedInterfaces()
+                .AsSelf();
+        }
+    }
+}
+</file>
+
