@@ -46,7 +46,7 @@ namespace GameLib
             _dependencyConfig = dependencyConfig;
             _rootScope = rootScope;
 
-            // Register root scene
+            // Register root scene natively
             var activeSceneName = SceneManager.GetActiveScene().name;
             if (!string.IsNullOrEmpty(activeSceneName) && _rootScope != null)
             {
@@ -56,6 +56,14 @@ namespace GameLib
 
         public void Initialize()
         {
+            // We run sequence loading as an async task after waiting 1 frame to prevent Frame-0 Addressable deadlocks
+            RunStartSequenceAsync().Forget();
+        }
+
+        private async UniTaskVoid RunStartSequenceAsync()
+        {
+            await UniTask.Yield(PlayerLoopTiming.Update);
+
 #if UNITY_EDITOR
             var overrideSeq = SessionState.GetString(OverrideKeyName, null);
             SessionState.EraseString(OverrideKeyName);
@@ -71,8 +79,16 @@ namespace GameLib
 
             if (!runRelease)
             {
-                Debug.Log("[SceneLoader] Standard Unity Play detected. Running open hierarchy without sequence overrides.");
-                return; 
+                var activeScene = SceneManager.GetActiveScene();
+                if (activeScene.buildIndex == 0 || string.Equals(activeScene.name, "Boot", StringComparison.OrdinalIgnoreCase))
+                {
+                    Debug.Log("[SceneLoader] Standard Play detected inside Boot scene. Auto-launching Default Sequence!");
+                }
+                else
+                {
+                    Debug.Log("[SceneLoader] Standard Play detected in gameplay scene. Running open hierarchy natively.");
+                    return; 
+                }
             }
 #endif
             if (_sequenceConfig != null && !string.IsNullOrEmpty(_sequenceConfig.DefaultSequence))
@@ -95,7 +111,6 @@ namespace GameLib
             _busyCounter++;
             try
             {
-                // Inspect target scenes using our new Step 2 helper method
                 var scenesToLoad = ResolveLoadQueue(sequence.GetTargetKeys());
                 int totalScenes = scenesToLoad.Count;
                 int scenesLoadedCount = 0;
@@ -104,7 +119,7 @@ namespace GameLib
                 {
                     string sceneKey = scenesToLoad[i];
 
-                    // If already loaded via Addressables, skip loading but ensure scope is tracked
+                    // Clean Addressables check: If already loaded by Addressables, skip loading!
                     if (_loadedSceneInstances.ContainsKey(sceneKey))
                     {
                         continue; 
@@ -153,7 +168,6 @@ namespace GameLib
             var startTime = Time.realtimeSinceStartup;
             try
             {
-                // --- PARENT UNLOAD SAFETY CHECK ---
                 if (IsSceneRequiredByActiveChild(sceneName, out string dependentChild))
                 {
                     string err = $"Cannot unload '{sceneName}' because active scene '{dependentChild}' depends on its DI container!";
@@ -199,7 +213,6 @@ namespace GameLib
 
                 if (!string.IsNullOrEmpty(unloadScene))
                 {
-                    // Safety check runs automatically inside UnloadSceneAsync
                     await UnloadSceneAsync(unloadScene, ct); 
                 }
 
@@ -214,11 +227,19 @@ namespace GameLib
         private async UniTask<SceneLoadResult> LoadSceneWithDependencyLinkingAsync(string sceneKey, bool makeActive, IProgress<float> progress, CancellationToken ct)
         {
             var startTime = Time.realtimeSinceStartup;
+
+            // Clean check: skip if already tracked
+            if (_loadedSceneInstances.ContainsKey(sceneKey))
+            {
+                return SceneLoadResult.Succeeded(sceneKey, 0f, 0);
+            }
+
             var parents = _dependencyConfig.GetRequiredParents(sceneKey);
             
             string immediateParentKey = parents.Count > 0 ? parents[parents.Count - 1] : null;
-            LifetimeScope parentScope = _rootScope;
             
+            // Clean DI fallback: If no parent is required (or parent list is empty), automatically parent to Root (Boot)!
+            LifetimeScope parentScope = _rootScope;
             if (!string.IsNullOrEmpty(immediateParentKey) && _loadedScopes.TryGetValue(immediateParentKey, out var foundScope))
             {
                 parentScope = foundScope;
@@ -227,7 +248,6 @@ namespace GameLib
             SceneInstance sceneInstance;
             using (LifetimeScope.EnqueueParent(parentScope))
             {
-                // --- ADDRESSABLES ASYNC LOADING ---
                 var op = Addressables.LoadSceneAsync(sceneKey, LoadSceneMode.Additive, activateOnLoad: true);
                 sceneInstance = await op.ToUniTask(progress: progress, cancellationToken: ct);
             }
@@ -248,7 +268,6 @@ namespace GameLib
             return SceneLoadResult.Succeeded(sceneKey, Time.realtimeSinceStartup - startTime, 1);
         }
 
-        // Checks if any currently loaded scene requires the target scene as a parent
         private bool IsSceneRequiredByActiveChild(string targetSceneKey, out string dependentChild)
         {
             dependentChild = null;
