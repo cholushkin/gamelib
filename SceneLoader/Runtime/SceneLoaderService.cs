@@ -8,7 +8,6 @@ using Cysharp.Threading.Tasks;
 using R3;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
-using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.SceneManagement;
 using VContainer;
@@ -28,10 +27,10 @@ namespace GameLib
         private readonly SceneDependencyConfig _dependencyConfig;
         private readonly LifetimeScope _rootScope;
 
-        // Tracks VContainer scopes by clean scene names (e.g., "System", "Level_01")
+        // Tracks VContainer scopes exclusively by clean scene short names (e.g., "System", "Level_01")
         private readonly Dictionary<string, LifetimeScope> _loadedScopes = new(StringComparer.OrdinalIgnoreCase);
 
-        // Tracks Addressable scene load instances for safe unloading
+        // Tracks Addressable scene load instances exclusively by clean scene short names
         private readonly Dictionary<string, SceneInstance> _loadedSceneInstances = new(StringComparer.OrdinalIgnoreCase);
 
         // Zero-allocation async binary semaphore for mutual exclusion
@@ -66,6 +65,7 @@ namespace GameLib
             if (!string.IsNullOrEmpty(activeSceneName) && _rootScope != null)
             {
                 _loadedScopes[activeSceneName] = _rootScope;
+                Debug.Log($"[SceneLoader Init] Registered native root scope under key: '{activeSceneName}'");
             }
         }
 
@@ -130,35 +130,36 @@ namespace GameLib
             if (sequence == null)
             {
                 var notFoundResult = SceneLoadResult.Failed(sequenceName, 0f, $"Sequence '{sequenceName}' was not found in SceneSequenceConfig.");
+                Debug.LogError($"[SceneLoader Error] {notFoundResult.ErrorMessage}");
                 _onLoadFailed.OnNext(notFoundResult);
                 return notFoundResult;
             }
 
             await _lock.WaitAsync(ct);
 
-            // Broadcast initial sequence start and zero progress
+            Debug.Log($"[SceneLoader Sequence] Starting sequence transition: '{sequenceName}'");
             _onSequenceLoadStarted.OnNext(sequenceName);
             _onSequenceLoadProgress.OnNext(0f);
 
-            // Transaction Ledger: Tracks only scenes successfully loaded during THIS specific execution
             var newlyLoadedScenes = new List<string>();
             try
             {
                 var scenesToLoad = ResolveLoadQueue(sequence.GetTargetKeys());
-                int totalScenes = scenesToLoad.Count;
+                Debug.Log($"[SceneLoader Sequence] Resolved execution queue for '{sequenceName}': [{string.Join(" -> ", scenesToLoad)}]");
 
+                int totalScenes = scenesToLoad.Count;
                 for (int i = 0; i < totalScenes; i++)
                 {
-                    string sceneKey = scenesToLoad[i];
+                    string sceneKey = GetCleanKey(scenesToLoad[i]);
 
                     if (_loadedSceneInstances.ContainsKey(sceneKey))
                     {
+                        Debug.Log($"[SceneLoader Sequence] Skipping '{sceneKey}' (already tracked as loaded).");
                         continue;
                     }
 
-                    bool makeActive = string.Equals(sequence.GetActiveSceneKey(), sceneKey, StringComparison.OrdinalIgnoreCase);
-                    
-                    // Create composite progress reporter that updates both local caller and global R3 stream
+                    bool makeActive = string.Equals(GetCleanKey(sequence.GetActiveSceneKey()), sceneKey, StringComparison.OrdinalIgnoreCase);
+
                     var stepProgress = Cysharp.Threading.Tasks.Progress.Create<float>(p => {
                         float normalizedProgress = (i + p) / totalScenes;
                         progress?.Report(normalizedProgress);
@@ -168,29 +169,29 @@ namespace GameLib
                     var stepResult = await LoadSceneWithDependencyLinkingAsync(sceneKey, makeActive, stepProgress, ct);
                     if (!stepResult.Success)
                     {
-                        // ❌ ATOMIC ROLLBACK: An intermediate scene failed. Restore application state!
                         await RollbackTransactionAsync(newlyLoadedScenes, sequenceName, stepResult.ErrorMessage);
-                        
+
                         var failResult = SceneLoadResult.Failed(sequenceName, Time.realtimeSinceStartup - startTime, $"Sequence '{sequenceName}' failed on scene '{sceneKey}' and was rolled back. Error: {stepResult.ErrorMessage}");
+                        Debug.LogError($"[SceneLoader Sequence Failed] {failResult.ErrorMessage}");
                         _onLoadFailed.OnNext(failResult);
                         return failResult;
                     }
 
-                    newlyLoadedScenes.Add(sceneKey);
+                    newlyLoadedScenes.Add(stepResult.TargetName);
                 }
 
-                // Ensure 100% completion is broadcasted cleanly
                 _onSequenceLoadProgress.OnNext(1f);
                 var successResult = SceneLoadResult.Succeeded(sequenceName, Time.realtimeSinceStartup - startTime, newlyLoadedScenes.Count);
+                Debug.Log($"[SceneLoader Sequence Success] Completed '{sequenceName}' in {successResult.DurationSeconds:0.00}s. Loaded {newlyLoadedScenes.Count} scene(s).");
                 _onSequenceLoadCompleted.OnNext(successResult);
                 return successResult;
             }
             catch (Exception ex)
             {
-                // ❌ ATOMIC ROLLBACK: An unhandled exception or cancellation occurred. Restore application state!
                 await RollbackTransactionAsync(newlyLoadedScenes, sequenceName, ex.Message);
-                
+
                 var exceptionResult = SceneLoadResult.Failed(sequenceName, Time.realtimeSinceStartup - startTime, $"Sequence '{sequenceName}' encountered an exception and was rolled back. Error: {ex.Message}");
+                Debug.LogError($"[SceneLoader Sequence Exception] {exceptionResult.ErrorMessage}");
                 _onLoadFailed.OnNext(exceptionResult);
                 return exceptionResult;
             }
@@ -205,6 +206,7 @@ namespace GameLib
             await _lock.WaitAsync(ct);
             try
             {
+                Debug.Log($"[SceneLoader Request] Loading single scene: '{sceneName}' (MakeActive: {makeActive})");
                 var result = await LoadSceneWithDependencyLinkingAsync(sceneName, makeActive, progress, ct);
                 if (!result.Success) _onLoadFailed.OnNext(result);
                 return result;
@@ -220,6 +222,7 @@ namespace GameLib
             await _lock.WaitAsync(ct);
             try
             {
+                Debug.Log($"[SceneLoader Request] Unloading single scene: '{sceneName}'");
                 var result = await UnloadSceneInternalAsync(sceneName, ct);
                 if (!result.Success) _onLoadFailed.OnNext(result);
                 return result;
@@ -236,12 +239,15 @@ namespace GameLib
             var startTime = Time.realtimeSinceStartup;
             try
             {
+                Debug.Log($"[SceneLoader Request] Replacing scene '{unloadScene}' with '{loadScene}'...");
                 int loadedCount = 0;
+
                 if (!string.IsNullOrEmpty(loadScene))
                 {
                     var loadResult = await LoadSceneWithDependencyLinkingAsync(loadScene, makeActive, progress, ct);
                     if (!loadResult.Success)
                     {
+                        Debug.LogError($"[SceneLoader Replace Error] Failed to load replacement target '{loadScene}': {loadResult.ErrorMessage}");
                         _onLoadFailed.OnNext(loadResult);
                         return loadResult;
                     }
@@ -253,12 +259,15 @@ namespace GameLib
                     var unloadResult = await UnloadSceneInternalAsync(unloadScene, ct);
                     if (!unloadResult.Success)
                     {
+                        Debug.LogError($"[SceneLoader Replace Error] Failed to unload old scene '{unloadScene}': {unloadResult.ErrorMessage}");
                         _onLoadFailed.OnNext(unloadResult);
                         return unloadResult;
                     }
                 }
 
-                return SceneLoadResult.Succeeded($"{loadScene} (replaced {unloadScene})", Time.realtimeSinceStartup - startTime, loadedCount);
+                var successResult = SceneLoadResult.Succeeded($"{loadScene} (replaced {unloadScene})", Time.realtimeSinceStartup - startTime, loadedCount);
+                Debug.Log($"[SceneLoader Replace Success] Successfully replaced '{unloadScene}' with '{loadScene}' in {successResult.DurationSeconds:0.00}s.");
+                return successResult;
             }
             finally
             {
@@ -270,7 +279,7 @@ namespace GameLib
         {
             if (newlyLoadedScenes.Count == 0) return;
 
-            Debug.LogError($"[SceneLoader Transaction] Sequence '{sequenceName}' failed ({reason}). Rolling back {newlyLoadedScenes.Count} newly loaded scene(s) to restore application state...");
+            Debug.LogWarning($"[SceneLoader Rollback] Sequence '{sequenceName}' failed ({reason}). Rolling back {newlyLoadedScenes.Count} newly loaded scene(s)...");
 
             for (int i = newlyLoadedScenes.Count - 1; i >= 0; i--)
             {
@@ -291,27 +300,51 @@ namespace GameLib
             var startTime = Time.realtimeSinceStartup;
             try
             {
-                if (IsSceneRequiredByActiveChild(sceneName, out string dependentChild))
+                string cleanName = GetCleanKey(sceneName);
+                Debug.Log($"[SceneLoader Unload Internal] Attempting to unload '{cleanName}'. Currently tracked Addressable keys: [{string.Join(", ", _loadedSceneInstances.Keys)}]");
+
+                if (IsSceneRequiredByActiveChild(cleanName, out string dependentChild))
                 {
-                    string err = $"Cannot unload '{sceneName}' because active scene '{dependentChild}' depends on its DI container!";
+                    string err = $"Cannot unload '{cleanName}' because active scene '{dependentChild}' depends on its DI container!";
                     Debug.LogError($"[SceneLoader Safety] {err}");
-                    return SceneLoadResult.Failed(sceneName, 0f, err);
+                    return SceneLoadResult.Failed(cleanName, 0f, err);
                 }
 
-                if (_loadedSceneInstances.TryGetValue(sceneName, out var sceneInstance))
+                
+                if (_loadedSceneInstances.TryGetValue(cleanName, out var sceneInstance) || _loadedSceneInstances.TryGetValue(sceneName, out sceneInstance))
                 {
+                    Debug.Log($"[SceneLoader Unload Internal] Match found for '{cleanName}'. Executing Addressables.UnloadSceneAsync...");
+    
+                    // FIX: Use CancellationToken.None! 
+                    // Tearing down a scene destroys GameObjects; if you pass a GameObject token here, destroying the scene will cancel the UniTask mid-flight!
                     var op = Addressables.UnloadSceneAsync(sceneInstance);
-                    await op.ToUniTask(cancellationToken: ct);
+                    await op.ToUniTask(cancellationToken: CancellationToken.None);
 
+                    // Now these cleanup lines will execute reliably without being skipped by a cancellation throw
+                    string unitySceneName = sceneInstance.Scene.IsValid() ? sceneInstance.Scene.name : null;
+                    _loadedSceneInstances.Remove(cleanName);
+                    _loadedScopes.Remove(cleanName);
                     _loadedSceneInstances.Remove(sceneName);
                     _loadedScopes.Remove(sceneName);
-                    return SceneLoadResult.Succeeded(sceneName, Time.realtimeSinceStartup - startTime, 1);
+                    if (!string.IsNullOrEmpty(unitySceneName))
+                    {
+                        _loadedSceneInstances.Remove(unitySceneName);
+                        _loadedScopes.Remove(unitySceneName);
+                    }
+
+                    Debug.Log($"[SceneLoader Unload Internal] Successfully unloaded '{cleanName}' and removed DI scope tracking.");
+                    return SceneLoadResult.Succeeded(cleanName, Time.realtimeSinceStartup - startTime, 1);
                 }
 
-                return SceneLoadResult.Failed(sceneName, 0f, $"Scene '{sceneName}' is not tracked as an active Addressable scene.");
+                // Explicit Error Log dumping all tracked keys to catch case sensitivity or whitespace mismatches!
+                string notTrackedErr = $"Scene '{cleanName}' is not tracked as an active Addressable scene. Tracked keys were: [{string.Join(", ", _loadedSceneInstances.Keys)}]";
+                Debug.LogError($"[SceneLoader Unload Failed] {notTrackedErr}");
+
+                return SceneLoadResult.Failed(cleanName, 0f, notTrackedErr);
             }
             catch (Exception ex)
             {
+                Debug.LogError($"[SceneLoader Unload Exception] Failed to unload '{sceneName}': {ex.Message}");
                 return SceneLoadResult.Failed(sceneName, Time.realtimeSinceStartup - startTime, ex.Message);
             }
         }
@@ -319,56 +352,77 @@ namespace GameLib
         private async UniTask<SceneLoadResult> LoadSceneWithDependencyLinkingAsync(string sceneKey, bool makeActive, IProgress<float> progress, CancellationToken ct)
         {
             var startTime = Time.realtimeSinceStartup;
+            string cleanKey = GetCleanKey(sceneKey);
 
-            if (_loadedSceneInstances.ContainsKey(sceneKey))
+            if (_loadedSceneInstances.ContainsKey(cleanKey))
             {
-                return SceneLoadResult.Succeeded(sceneKey, 0f, 0);
+                Debug.Log($"[SceneLoader Track] Scene '{cleanKey}' is already loaded in Addressables dictionary. Skipping load.");
+                return SceneLoadResult.Succeeded(cleanKey, 0f, 0);
             }
 
             var parents = _dependencyConfig.GetRequiredParents(sceneKey);
-            string immediateParentKey = parents.Count > 0 ? parents[parents.Count - 1] : null;
+            string immediateParentKey = parents.Count > 0 ? GetCleanKey(parents[parents.Count - 1]) : null;
 
             LifetimeScope parentScope = _rootScope;
             if (!string.IsNullOrEmpty(immediateParentKey) && _loadedScopes.TryGetValue(immediateParentKey, out var foundScope))
             {
                 parentScope = foundScope;
+                Debug.Log($"[SceneLoader DI] Found parent scope '{immediateParentKey}' for child scene '{cleanKey}'.");
+            }
+            else if (!string.IsNullOrEmpty(immediateParentKey))
+            {
+                Debug.LogWarning($"[SceneLoader DI] Required parent '{immediateParentKey}' for scene '{cleanKey}' was not found in loaded scopes! Falling back to root scope.");
             }
 
+            Debug.Log($"[SceneLoader Addressables] Executing Addressables.LoadSceneAsync for key: '{cleanKey}'...");
             SceneInstance sceneInstance;
             using (LifetimeScope.EnqueueParent(parentScope))
             {
-                var op = Addressables.LoadSceneAsync(sceneKey, LoadSceneMode.Additive, activateOnLoad: true);
+                var op = Addressables.LoadSceneAsync(cleanKey, LoadSceneMode.Additive, activateOnLoad: true);
                 sceneInstance = await op.ToUniTask(progress: progress, cancellationToken: ct);
             }
 
-            _loadedSceneInstances[sceneKey] = sceneInstance;
+            // Record into dictionary using ONLY the clean scene short name (never a GUID!)
+            string loadedSceneName = sceneInstance.Scene.IsValid() ? sceneInstance.Scene.name : cleanKey;
+            _loadedSceneInstances[loadedSceneName] = sceneInstance;
+            Debug.Log($"[SceneLoader Track] Stored loaded Addressable scene instance under key: '{loadedSceneName}'. Tracked keys: [{string.Join(", ", _loadedSceneInstances.Keys)}]");
 
             var newScope = FindScopeInScene(sceneInstance.Scene);
             if (newScope != null)
             {
-                _loadedScopes[sceneKey] = newScope;
+                _loadedScopes[loadedSceneName] = newScope;
+                Debug.Log($"[SceneLoader DI] Registered LifetimeScope for scene '{loadedSceneName}'.");
+            }
+            else
+            {
+                Debug.Log($"[SceneLoader DI] No LifetimeScope component found in root of scene '{loadedSceneName}'.");
             }
 
             if (makeActive && sceneInstance.Scene.IsValid())
             {
                 SceneManager.SetActiveScene(sceneInstance.Scene);
+                Debug.Log($"[SceneLoader Active] Set '{loadedSceneName}' as the active Unity scene.");
             }
 
-            return SceneLoadResult.Succeeded(sceneKey, Time.realtimeSinceStartup - startTime, 1);
+            return SceneLoadResult.Succeeded(loadedSceneName, Time.realtimeSinceStartup - startTime, 1);
         }
 
         private bool IsSceneRequiredByActiveChild(string targetSceneKey, out string dependentChild)
         {
             dependentChild = null;
+            string cleanTarget = GetCleanKey(targetSceneKey);
             foreach (var loadedSceneKey in _loadedScopes.Keys)
             {
-                if (string.Equals(loadedSceneKey, targetSceneKey, StringComparison.OrdinalIgnoreCase)) continue;
+                if (string.Equals(loadedSceneKey, cleanTarget, StringComparison.OrdinalIgnoreCase)) continue;
 
                 var parents = _dependencyConfig.GetRequiredParents(loadedSceneKey);
-                if (parents.Contains(targetSceneKey))
+                foreach (var p in parents)
                 {
-                    dependentChild = loadedSceneKey;
-                    return true;
+                    if (string.Equals(GetCleanKey(p), cleanTarget, StringComparison.OrdinalIgnoreCase))
+                    {
+                        dependentChild = loadedSceneKey;
+                        return true;
+                    }
                 }
             }
             return false;
@@ -381,14 +435,16 @@ namespace GameLib
 
             void AddWithDependencies(string sceneKey)
             {
-                if (string.IsNullOrEmpty(sceneKey) || visited.Contains(sceneKey)) return;
+                string cleanKey = GetCleanKey(sceneKey);
+                if (string.IsNullOrEmpty(cleanKey) || visited.Contains(cleanKey)) return;
+                
                 var parents = _dependencyConfig.GetRequiredParents(sceneKey);
                 foreach (var parent in parents)
                 {
                     AddWithDependencies(parent);
                 }
-                visited.Add(sceneKey);
-                queue.Add(sceneKey);
+                visited.Add(cleanKey);
+                queue.Add(cleanKey);
             }
 
             foreach (var target in targetScenes)
@@ -408,6 +464,21 @@ namespace GameLib
                     return scope;
             }
             return null;
+        }
+
+        // Intercepts any key (GUID or Address string) and resolves it to its clean Addressable short name
+        private string GetCleanKey(string key)
+        {
+            if (string.IsNullOrEmpty(key)) return key;
+
+            foreach (var locator in Addressables.ResourceLocators)
+            {
+                if (locator.Locate(key, typeof(object), out var locations) && locations.Count > 0)
+                {
+                    return locations[0].PrimaryKey;
+                }
+            }
+            return key;
         }
     }
 }
