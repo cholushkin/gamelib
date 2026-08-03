@@ -1,25 +1,24 @@
+// todo: migrate to the new Unity Input System (InputSystem.GetDevice<Accelerometer>()) if legacy input is disabled.
+// idea: add a small visual 3D axis gizmo that rotates based on the acceleration vector.
 using UnityEngine;
 
 namespace GameLib
 {
+
     public class DebugWidgetInputAcceleration : DebugWidgetImageAndText
     {
-        public string FormatString;
+        public string FormatString = "Input acceleration: {0}";
 
-        protected override void Awake()
+        private void Reset()
         {
-            base.Awake();
-            ApplyState();
-        }
-        
-        protected override void Reset()
-        {
-            base.Reset();
-            FormatString = "Debug widget input acceleration: {0}";
-            SetText("Debug widget input acceleration:", Color.white);
+            FormatString = "Input acceleration: {0}";
+            SetText("Input acceleration:", Color.white);
+
+            // This changes every frame, so it must tick
+            UpdateStrategy = WidgetUpdateStrategy.WhenVisible;
         }
 
-        public void ApplyState()
+        public override void Tick(float deltaTime)
         {
             SetText(string.Format(FormatString, Input.acceleration), GetTextColor());
         }

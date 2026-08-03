@@ -1,22 +1,23 @@
+// todo: add the IL2CPP / Mono scripting backend info alongside the .NET version.
+// idea: highlight the text in yellow if running on an outdated or legacy framework version.
 using UnityEngine;
 
 namespace GameLib
 {
     public class DebugWidgetDotNetVersion : DebugWidgetImageAndText
     {
-        public string FormatString;
+        public string FormatString = "C# Version: {0}";
 
-        protected override void Awake()
+        private void Start()
         {
-            base.Awake();
             ApplyState();
         }
-        
-        protected override void Reset()
+
+        private void Reset()
         {
-            base.Reset();
             FormatString = "C# Version: {0}";
             SetText("Platform:", Color.white);
+            UpdateStrategy = WidgetUpdateStrategy.Manual;
         }
 
         public void ApplyState()

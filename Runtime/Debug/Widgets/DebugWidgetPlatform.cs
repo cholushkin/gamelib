@@ -1,22 +1,23 @@
+// todo: hide this widget on mobile builds to save screen space, as the platform is usually obvious.
+// idea: display an icon corresponding to the current platform instead of just text.
 using UnityEngine;
 
 namespace GameLib
 {
     public class DebugWidgetPlatform : DebugWidgetImageAndText
     {
-        public string FormatString;
+        public string FormatString = "Platform: {0}";
 
-        protected override void Awake()
+        private void Start()
         {
-            base.Awake();
             ApplyState();
         }
-        
-        protected override void Reset()
+
+        private void Reset()
         {
-            base.Reset();
             FormatString = "Platform: {0}";
             SetText("Platform:", Color.white);
+            UpdateStrategy = WidgetUpdateStrategy.Manual;
         }
 
         private void ApplyState()

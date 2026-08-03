@@ -1,22 +1,26 @@
+// todo: check if the language is supported by project localization configs and display a warning if unsupported.
+// idea: show the ISO 639-1 language code alongside the Unity SystemLanguage enum string.
 using UnityEngine;
 
 namespace GameLib
 {
+
     public class DebugWidgetSystemLanguage : DebugWidgetImageAndText
     {
-        public string FormatString;
+        public string FormatString = "System language: {0}";
 
-        protected override void Awake()
+        private void Start()
         {
-            base.Awake();
             ApplyState();
         }
-        
-        protected override void Reset()
+
+        private void Reset()
         {
-            base.Reset();
             FormatString = "System language: {0}";
             SetText("System language:", Color.white);
+
+            // Static for the session, save CPU cycles
+            UpdateStrategy = WidgetUpdateStrategy.Manual;
         }
 
         private void ApplyState()

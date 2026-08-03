@@ -1,22 +1,24 @@
+// todo: deprecate or hide this widget if the project does not actively use Unity Services.
+// idea: color-code the ID text green if Unity Services are successfully connected, and red if offline.
+
 using UnityEngine;
 
 namespace GameLib
 {
     public class DebugWidgetCloudProjectID : DebugWidgetImageAndText
     {
-        public string FormatString;
+        public string FormatString = "Cloud project ID: {0}";
 
-        protected override void Awake()
+        private void Start()
         {
-            base.Awake();
             ApplyState();
         }
-        
-        protected override void Reset()
+
+        private void Reset()
         {
-            base.Reset();
             FormatString = "Cloud project ID: {0}";
             SetText("Cloud project ID:", Color.white);
+            UpdateStrategy = WidgetUpdateStrategy.Manual;
         }
 
         public void ApplyState()

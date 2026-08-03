@@ -1,22 +1,24 @@
+// todo: remove this from production builds as it rarely provides actionable debug value.
+// idea: append the product name to this widget to show 'Company / Product' in one line.
+
 using UnityEngine;
 
 namespace GameLib
 {
     public class DebugWidgetCompanyName : DebugWidgetImageAndText
     {
-        public string FormatString;
+        public string FormatString = "Company name: {0}";
 
-        protected override void Awake()
+        private void Start()
         {
-            base.Awake();
             ApplyState();
         }
 
-        protected override void Reset()
+        private void Reset()
         {
-            base.Reset();
             FormatString = "Company name: {0}";
             SetText("Company name:", Color.white);
+            UpdateStrategy = WidgetUpdateStrategy.Manual;
         }
 
         public void ApplyState()

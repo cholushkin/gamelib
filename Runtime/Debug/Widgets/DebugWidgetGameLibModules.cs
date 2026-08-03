@@ -33,6 +33,12 @@ namespace GameLib
             PopulateList();
         }
 
+        private void Reset()
+        {
+            // This widget only updates on UI clicks, so it doesn't need to be ticked by the service
+            UpdateStrategy = WidgetUpdateStrategy.Manual;
+        }
+
         private void PopulateList()
         {
             foreach (Transform child in ListContainer)

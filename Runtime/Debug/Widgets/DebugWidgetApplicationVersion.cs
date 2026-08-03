@@ -1,22 +1,24 @@
+// todo: add a visual indicator if the version matches a development or release build.
+// idea: allow clicking the text to copy the version string to the clipboard.
+
 using UnityEngine;
 
 namespace GameLib
 {
     public class DebugWidgetApplicationVersion : DebugWidgetImageAndText
     {
-        public string FormatString;
+        public string FormatString = "Application version: {0}";
 
-        protected override void Awake()
+        private void Start()
         {
-            base.Awake();
             ApplyState();
         }
-        
-        protected override void Reset()
+
+        private void Reset()
         {
-            base.Reset();
             FormatString = "Application version: {0}";
             SetText("Application version:", Color.white);
+            UpdateStrategy = WidgetUpdateStrategy.Manual;
         }
 
         public void ApplyState()

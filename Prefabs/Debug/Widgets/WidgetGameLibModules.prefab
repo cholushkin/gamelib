@@ -698,8 +698,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: GameLib::GameLib.DebugWidgetGameLibModules
   _UID: 9fed846294ce4e3191d3920fa751ec8f
-  UpdateWhileDisabled: 0
   PersistState: 0
+  UpdateStrategy: 1
   ListContainer: {fileID: 2071860261199846723}
   ItemPrefab: {fileID: 3310488640996210097, guid: 6f0e424492da23a468e21c4bfa7dc107, type: 3}
   SelectedIcon: {fileID: 4742001945762043311}

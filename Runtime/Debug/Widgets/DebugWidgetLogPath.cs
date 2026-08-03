@@ -1,3 +1,5 @@
+// todo: add a visual indication if the log file size exceeds a certain threshold (e.g., > 10MB).
+// idea: add a "Copy Path" button next to the "Open" button for platforms where opening the file directly isn't supported.
 using System.Diagnostics;
 using System.IO;
 using UnityEngine;
@@ -5,21 +7,22 @@ using Debug = UnityEngine.Debug;
 
 namespace GameLib
 {
+
     public class DebugWidgetLogPath : DebugWidgetButton
     {
-        public string FormatString;
+        public string FormatString = "Console log path: {0}";
 
-        protected override void Awake()
+        protected override void Start()
         {
-            base.Awake();
+            base.Start();
             ApplyState();
         }
-        
-        protected override void Reset()
+
+        private void Reset()
         {
-            base.Reset();
             FormatString = "Console log path: {0}";
             SetText("Console log path:", Color.white);
+            UpdateStrategy = WidgetUpdateStrategy.Manual;
         }
 
         public void ApplyState()
@@ -31,26 +34,24 @@ namespace GameLib
         {
             OpenLog();
         }
-        
+
         public void OpenLog()
         {
             string logPath = Application.consoleLogPath;
-    
-            // Check if the file exists before trying to open it
+
             if (File.Exists(logPath))
             {
-                // Different platform handling
 #if UNITY_EDITOR || UNITY_STANDALONE_WIN
-                Process.Start("notepad.exe", logPath); // Open in Notepad (Windows)
+                Process.Start("notepad.exe", logPath);
 #elif UNITY_STANDALONE_OSX
-                Process.Start("open", logPath); // Open in default editor (macOS)
+            Process.Start("open", logPath);
 #elif UNITY_STANDALONE_LINUX
-                Process.Start("xdg-open", logPath); // Open in default editor (Linux)
+            Process.Start("xdg-open", logPath);
 #endif
             }
             else
             {
-                Debug.LogWarning("Log file does not exist at: " + logPath);
+                Debug.LogWarning("[DebugWidgetLogPath] Log file does not exist at: " + logPath);
             }
         }
     }

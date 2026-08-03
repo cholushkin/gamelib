@@ -4,16 +4,17 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using R3;
+using VContainer.Unity;
 
 namespace GameLib
 {
-    public class GameLibModuleRegistry : IGameLibModuleRegistry, IDisposable
+    public class GameLibModuleRegistry : IGameLibModuleRegistry, IAsyncStartable, IDisposable
     {
         private readonly IConfigService _configService;
         private readonly ReactiveProperty<IReadOnlyList<GameLibModuleManifest>> _modules;
-
         public ReadOnlyReactiveProperty<IReadOnlyList<GameLibModuleManifest>> ModulesObservable => _modules;
         public IReadOnlyList<GameLibModuleManifest> Modules => _modules.Value;
 
@@ -23,7 +24,7 @@ namespace GameLib
             _modules = new ReactiveProperty<IReadOnlyList<GameLibModuleManifest>>(Array.Empty<GameLibModuleManifest>());
         }
 
-        public async UniTask InitializeAsync()
+        public async UniTask StartAsync(CancellationToken cancellationToken = default)
         {
             var manifests = await _configService.GetAllConfigsAsync<GameLibModuleManifest>();
 

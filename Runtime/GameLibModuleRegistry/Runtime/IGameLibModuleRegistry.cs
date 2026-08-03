@@ -2,15 +2,12 @@
 // idea: add a DependencyResolution method to enforce load order (e.g., Core before Inventory).
 
 using System.Collections.Generic;
-using Cysharp.Threading.Tasks;
 using R3;
 
 namespace GameLib
 {
     public interface IGameLibModuleRegistry
     {
-        UniTask InitializeAsync();
-        
         ReadOnlyReactiveProperty<IReadOnlyList<GameLibModuleManifest>> ModulesObservable { get; }
         IReadOnlyList<GameLibModuleManifest> Modules { get; }
 
