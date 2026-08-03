@@ -39,3 +39,5 @@ MonoBehaviour:
     Color: {r: 0.71199995, g: 0.35460392, b: 0.712, a: 1}
   - Wildcard: Tests
     Color: {r: 0, g: 0.58, b: 0.000000034570693, a: 1}
+  - Wildcard: Animations
+    Color: {r: 1, g: 0.43137258, b: 0.2509804, a: 1}
