@@ -1,100 +1,55 @@
-// todo: add a search/filter input field to find modules quickly by name or tag.
-// idea: add a default placeholder sprite to the left panel if the selected module has no icon assigned.
+// todo: add a search bar above the container to filter the instantiated module items by name.
+// idea: add a sorting dropdown to order modules alphabetically or by version number.
 
-using System.Collections.Generic;
-using TMPro;
+using GameLib;
+using System.Linq;
 using UnityEngine;
-using UnityEngine.UI;
 using VContainer;
 
-namespace GameLib
+public class DebugWidgetGameLibModules : DebugWidgetBase
 {
-    public class DebugWidgetGameLibModules : DebugWidgetBase
+    public DebugWidgetRegistryModuleItem ItemPrefab;
+
+    private IGameLibModuleRegistry _registry;
+
+    [Inject]
+    public void Construct(IGameLibModuleRegistry registry)
     {
-        [Header("List configuration")] public RectTransform ListContainer;
-        public DebugWidgetModuleListItem ItemPrefab;
+        _registry = registry;
+    }
 
-        [Header("Selected Item Panel")] public Image SelectedIcon;
-        public TextMeshProUGUI SelectedName;
-        public TextMeshProUGUI SelectedVersion;
-        public TextMeshProUGUI SelectedDescription;
+    protected void Start()
+    {
+        PopulateList();
+    }
 
-        private IGameLibModuleRegistry _registry;
-        private readonly List<DebugWidgetModuleListItem> _listItems = new();
+    private void Reset()
+    {
+        // This widget only updates on UI clicks, so it doesn't need to be ticked by the service
+        UpdateStrategy = WidgetUpdateStrategy.Manual;
+    }
 
-        [Inject]
-        public void Construct(IGameLibModuleRegistry registry)
+    private void PopulateList()
+    {
+        // Clear existing children
+        foreach (Transform child in transform)
         {
-            _registry = registry;
+            Destroy(child.gameObject);
         }
 
-        private void Start()
+        if (_registry == null || _registry.Modules == null || _registry.Modules.Count == 0)
         {
-            PopulateList();
+            return;
         }
 
-        private void Reset()
+        // Sort modules alphabetically by name
+        var sortedModules = _registry.Modules.OrderBy(module => module.Name);
+
+        foreach (var module in sortedModules)
         {
-            // This widget only updates on UI clicks, so it doesn't need to be ticked by the service
-            UpdateStrategy = WidgetUpdateStrategy.Manual;
-        }
-
-        private void PopulateList()
-        {
-            foreach (Transform child in ListContainer)
-                Destroy(child.gameObject);
-
-            _listItems.Clear();
-
-            if (_registry == null || _registry.Modules == null || _registry.Modules.Count == 0)
-            {
-                ClearSelectionPanel();
-                return;
-            }
-
-            foreach (var module in _registry.Modules)
-            {
-                var item = Instantiate(ItemPrefab, ListContainer);
-                item.Setup(module, OnItemClicked);
-                _listItems.Add(item);
-            }
-
-            // Auto-select the first module to populate the panel and trigger the scale effect
-            if (_listItems.Count > 0)
-            {
-                OnItemClicked(_listItems[0], _registry.Modules[0]);
-            }
-        }
-
-        private void OnItemClicked(DebugWidgetModuleListItem clickedItem, GameLibModuleManifest manifest)
-        {
-            // Update selection state (scaling) for all items in the list
-            foreach (var item in _listItems)
-            {
-                item.SetSelected(item == clickedItem);
-            }
-
-            SelectedName.text = manifest.Name;
-            SelectedVersion.text = $"v{manifest.Version}";
-            SelectedDescription.text = manifest.Description;
-
-            if (manifest.Icon != null)
-            {
-                SelectedIcon.sprite = manifest.Icon;
-                SelectedIcon.enabled = true;
-            }
-            else
-            {
-                SelectedIcon.enabled = false;
-            }
-        }
-
-        private void ClearSelectionPanel()
-        {
-            SelectedName.text = "No modules found";
-            SelectedVersion.text = string.Empty;
-            SelectedDescription.text = string.Empty;
-            SelectedIcon.enabled = false;
+            // Instantiate directly under this widget's transform
+            var item = Instantiate(ItemPrefab, transform);
+            item.Setup(module);
         }
     }
 }
