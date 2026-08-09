@@ -10,21 +10,19 @@ namespace GameLib
     public static class ProjectFolderColors
     {
         private static ProjectFolderColorsSettings _settings;
-        private static GUIStyle _cachedStyle;
-        private static readonly HashSet<string> _selectedGuids = new();
+        private static readonly HashSet<string> _selectedGuids = new HashSet<string>();
 
         static ProjectFolderColors()
         {
             EditorApplication.projectWindowItemOnGUI += OnProjectWindowItemGUI;
             
-            // Update selection cache immediately when project structure changes (e.g. creating ScriptableObjects)
+            // Update selection cache immediately when project structure changes
             EditorApplication.projectChanged += () => 
             {
                 _settings = null;
                 UpdateSelectionCache();
             };
             
-            // Cache selection changes to avoid array allocations inside OnGUI
             Selection.selectionChanged += UpdateSelectionCache;
             UpdateSelectionCache();
         }
@@ -41,92 +39,51 @@ namespace GameLib
 
         private static void OnProjectWindowItemGUI(string guid, Rect rect)
         {
-            // Safeguard: Ignore large grid-view icons
-            if (rect.height > 20)
-                return;
-
-            // FIX 1: Use 'editingTextField' instead of 'isEditingTextField'
-            if (Event.current.type != EventType.Repaint || EditorGUIUtility.editingTextField)
-                return;
-
-            var settings = GetSettings();
-            if (settings == null || settings.Rules.Count == 0)
-                return;
+            // Safeguard: Ignore large grid-view icons (only apply to lists)
+            if (rect.height > 20) return;
+    
+            // Safeguard: Only draw during the repaint phase to prevent UI layout errors
+            if (Event.current.type != EventType.Repaint) return;
 
             string path = AssetDatabase.GUIDToAssetPath(guid);
-            
-            // Ignore uninitialized assets or temporary files during creation
-            if (string.IsNullOrEmpty(path) || path.EndsWith(".tmp"))
-                return;
+            if (string.IsNullOrEmpty(path)) return;
 
-            bool isFolder = AssetDatabase.IsValidFolder(path);
-            string fullFileName = Path.GetFileName(path);
-            string displayName = isFolder ? fullFileName : Path.GetFileNameWithoutExtension(path);
+            // Enforce the folder check so files are ignored
+            if (!AssetDatabase.IsValidFolder(path)) return;
 
-            // FIX 2: Clean O(1) lookup using only the synced cache
-            bool selected = _selectedGuids.Contains(guid);
-            Color? targetColor = null;
+            ProjectFolderColorsSettings settings = GetSettings();
+            if (settings == null || settings.Rules == null) return;
 
-            for (int i = 0; i < settings.Rules.Count; i++)
+            string folderName = Path.GetFileName(path);
+            Color folderColor = Color.clear;
+            bool hasCustomColor = false;
+
+            foreach (var rule in settings.Rules) 
             {
-                var rule = settings.Rules[i];
-                if (string.IsNullOrWhiteSpace(rule.Wildcard))
-                    continue;
-
-                if (!FastWildcardMatch(fullFileName, rule.Wildcard))
-                    continue;
-
-                targetColor = rule.Color;
-                break;
-            }
-
-            DrawAssetLabel(rect, displayName, targetColor, selected);
-        }
-
-        private static void DrawAssetLabel(Rect rect, string text, Color? customColor, bool selected)
-        {
-            if (_cachedStyle == null)
-            {
-                _cachedStyle = new GUIStyle(EditorStyles.label)
+                if (WildcardMatch(folderName, rule.Wildcard)) 
                 {
-                    fontStyle = FontStyle.Bold
-                };
+                    folderColor = rule.Color; 
+                    hasCustomColor = true;
+                    break;
+                }
             }
 
-            Color textColor = customColor ?? (selected ? Color.white : EditorStyles.label.normal.textColor);
+            if (!hasCustomColor) return;
+
+            // --- Vertical Accent Line Logic ---
             
-            _cachedStyle.normal.textColor = textColor;
-            _cachedStyle.hover.textColor = textColor;
-            _cachedStyle.focused.textColor = textColor;
-            _cachedStyle.active.textColor = textColor;
+            // Ensure the color is fully opaque for the accent line
+            folderColor.a = 1f;
 
-            bool isHovered = rect.Contains(Event.current.mousePosition);
-
-            rect.x += 16;
-            rect.width -= 16;
-
-            Color bgColor;
-            if (selected)
-            {
-                if (EditorGUIUtility.isProSkin)
-                    bgColor = isHovered ? new Color(0.21f, 0.40f, 0.57f) : new Color(0.17f, 0.36f, 0.53f);
-                else
-                    bgColor = isHovered ? new Color(0.30f, 0.55f, 0.95f) : new Color(0.24f, 0.49f, 0.91f);
-            }
-            else if (EditorGUIUtility.isProSkin)
-            {
-                bgColor = isHovered ? new Color(0.27f, 0.27f, 0.27f) : new Color(0.22f, 0.22f, 0.22f);
-            }
-            else
-            {
-                bgColor = isHovered ? new Color(0.69f, 0.69f, 0.69f) : new Color(0.76f, 0.76f, 0.76f);
-            }
-
-            EditorGUI.DrawRect(rect, bgColor);
-            GUI.Label(rect, text, _cachedStyle);
+            // 2-pixel wide line just to the left of the folder icon
+            // Adjust the rect.x offset if you need it closer or further from the icon
+            Rect lineRect = new Rect(rect.x - 2, rect.y + 2, 3, rect.height - 4);
+            
+            // Draw the vertical colored bar
+            EditorGUI.DrawRect(lineRect, folderColor);
         }
 
-        private static bool FastWildcardMatch(ReadOnlySpan<char> input, ReadOnlySpan<char> pattern)
+        private static bool WildcardMatch(string input, string pattern)
         {
             int inputIdx = 0;
             int patternIdx = 0;
