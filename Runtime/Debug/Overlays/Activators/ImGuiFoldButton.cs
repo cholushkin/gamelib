@@ -6,15 +6,14 @@ namespace GameLib
     {
         public string Text = "[Dev]";
         public static bool IsFolded = true;
-        public Vector3 SizeAndPos;
+        public Vector3 Position = new Vector3(0f, 0f, 0f);
         public float ButtonWidth = 60f;
         public float ButtonHeight = 30f;
-        public float ButtonGap = 10f;
 
         private void OnGUI()
         {
             string buttonText = IsFolded ? $"►{Text}" : $"▼{Text}";
-            if (UnityEngine.GUI.Button(new Rect(ButtonGap, ButtonGap, ButtonWidth, ButtonHeight), buttonText))
+            if (UnityEngine.GUI.Button(new Rect(Position.x, Position.y, ButtonWidth, ButtonHeight), buttonText))
                 IsFolded = !IsFolded;
         }
     }
