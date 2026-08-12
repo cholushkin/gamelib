@@ -13,7 +13,8 @@
         "Unity.ResourceManager",
         "VContainer",
         "Alchemy",
-        "UniTask.Addressables"
+        "UniTask.Addressables",
+        "VersionHistoryRuntime"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
