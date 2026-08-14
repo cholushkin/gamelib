@@ -19,7 +19,7 @@ namespace GameLib
         protected void ProccessGroupHide()
         {
             foreach (var overlay in GetAllInstances())
-                if(overlay.GroupdIndex == GroupdIndex)
+                if(overlay.GroupdIndex != GroupdIndex)
                     overlay.Hide();
         }
     }
