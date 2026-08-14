@@ -150,7 +150,7 @@ GameObject:
   - component: {fileID: 2733203684963380450}
   - component: {fileID: 587445371181506583}
   m_Layer: 0
-  m_Name: WidgetCloudCompanyName
+  m_Name: WidgetCompanyName
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 2878112164312357090}
   - component: {fileID: 4863923254970391454}
   m_Layer: 0
-  m_Name: FloatingActivatorAndDevMenu
+  m_Name: DevMenu
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -330,10 +330,6 @@ PrefabInstance:
     - target: {fileID: 4542069282371295529, guid: 16cfe2056c1de6546b44dba4d28be6ed, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6320954970010501202, guid: 16cfe2056c1de6546b44dba4d28be6ed, type: 3}
-      propertyPath: m_Padding.m_Bottom
-      value: 128
       objectReference: {fileID: 0}
     - target: {fileID: 7331919388090303807, guid: 16cfe2056c1de6546b44dba4d28be6ed, type: 3}
       propertyPath: m_Name

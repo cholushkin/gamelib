@@ -10,6 +10,10 @@ namespace GameLib
         public Transform MenuContent;
         public GameObject MenuItemPrefab;
         
+        [Header("Global Visibility Icons")]
+        public GameObject GlobalVisibleIcon;
+        public GameObject GlobalInvisibleIcon;
+        
         [Header("System References")]
         [Tooltip("The root object to destroy when the kill switch is triggered (e.g., the Dev Canvas)")]
         public GameObject RootSystemObject;
@@ -17,9 +21,11 @@ namespace GameLib
         private bool _isMenuOpen = false;
         private List<DevEntryMenuItem> _activeItems = new List<DevEntryMenuItem>();
 
+        // Cached Activators
+        private OverlayActivatorDevEntryButton[] _allActivators;
+
         // Global Visibility State
         private bool _isSystemHidden = false;
-        private HashSet<OverlayActivatorDevEntryButton> _savedActiveOverlays = new HashSet<OverlayActivatorDevEntryButton>();
 
         // Kill Switch State
         private int _killClicks = 0;
@@ -29,6 +35,12 @@ namespace GameLib
         void Start()
         {
             MenuPanel.SetActive(false);
+            
+            // Find and cache all activators in the scene once at startup.
+            // FindObjectsInactive.Include ensures we find them even if they start disabled.
+            _allActivators = FindObjectsByType<OverlayActivatorDevEntryButton>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            
+            UpdateGlobalVisibilityIcons();
         }
 
         public void ToggleMenu()
@@ -51,10 +63,10 @@ namespace GameLib
             }
             _activeItems.Clear();
 
-            // Populate current entries 
-            foreach (var activator in OverlayActivatorDevEntryButton.RegisteredActivators)
+            // Populate current entries using our cached array
+            foreach (var activator in _allActivators)
             {
-                if (activator.Overlay == null) continue;
+                if (activator == null || activator.Overlay == null) continue;
 
                 var go = Instantiate(MenuItemPrefab, MenuContent);
                 var menuItem = go.GetComponent<DevEntryMenuItem>();
@@ -80,33 +92,24 @@ namespace GameLib
         {
             _isSystemHidden = !_isSystemHidden;
 
-            if (_isSystemHidden)
+            // Iterate through our cached array.
+            // Since it's an array and not a dynamically updating list, 
+            // disabling objects won't cause any collection modification crashes!
+            foreach (var activator in _allActivators)
             {
-                _savedActiveOverlays.Clear();
-                foreach (var activator in OverlayActivatorDevEntryButton.RegisteredActivators)
+                if (activator != null && activator.Overlay != null)
                 {
-                    if (activator.Overlay != null && activator.Overlay.IsShown())
-                    {
-                        // Save the state and hide it
-                        _savedActiveOverlays.Add(activator);
-                        activator.Overlay.Hide();
-                    }
+                    activator.Overlay.gameObject.SetActive(!_isSystemHidden);
                 }
-            }
-            else
-            {
-                foreach (var activator in _savedActiveOverlays)
-                {
-                    if (activator != null && activator.Overlay != null)
-                    {
-                        // Restore previously active overlays
-                        activator.Overlay.Show();
-                    }
-                }
-                _savedActiveOverlays.Clear();
             }
 
-            UpdateUIStatus();
+            UpdateGlobalVisibilityIcons();
+        }
+
+        private void UpdateGlobalVisibilityIcons()
+        {
+            if (GlobalVisibleIcon != null) GlobalVisibleIcon.SetActive(!_isSystemHidden);
+            if (GlobalInvisibleIcon != null) GlobalInvisibleIcon.SetActive(_isSystemHidden);
         }
 
         public void AttemptKillSystem()

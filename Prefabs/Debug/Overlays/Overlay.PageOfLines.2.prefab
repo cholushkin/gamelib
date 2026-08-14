@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 232534515751191}
   - component: {fileID: 3028151113833045395}
   - component: {fileID: 2095666970370085269}
+  - component: {fileID: 8979789119096569516}
   - component: {fileID: 9096818783800248272}
   - component: {fileID: 1536273689178548929}
   - component: {fileID: 7806056543036983308}
@@ -55,9 +56,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 59e1e00c289b30b44baa5a243a98ada0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GroupdIndex: 0
   Content: {fileID: 0}
+  GroupdIndex: 0
   OverlayHandler: {fileID: 0}
+  DisableOnHide: 0
   Canvas: {fileID: 1536273689178548929}
   CanvasGroup: {fileID: 4877256313442159511}
   CanvasScaler: {fileID: 7806056543036983308}
@@ -76,6 +78,20 @@ MonoBehaviour:
   Overlay: {fileID: 3028151113833045395}
   KillOnStart: 0
   ShowOnStart: 0
+--- !u!114 &8979789119096569516
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2405382367991364816}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8497c83f21d64d34da04c22c19210a1d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: GameLib::GameLib.OverlayActivatorDevEntryButton
+  Overlay: {fileID: 3028151113833045395}
+  DisplayName: Performance
 --- !u!114 &9096818783800248272
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -108,10 +124,11 @@ Canvas:
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
   m_VertexColorAlwaysGammaSpace: 1
+  m_UseReflectionProbes: 0
   m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
-  m_SortingOrder: 0
+  m_SortingOrder: 1000
   m_TargetDisplay: 0
 --- !u!114 &7806056543036983308
 MonoBehaviour:
@@ -1062,7 +1079,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6449881116134279756, guid: 09a1227af4026e647a821036329a27ed, type: 3}
       propertyPath: m_Name
-      value: WidgetCloudInputAcceleration
+      value: WidgetInputAcceleration
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

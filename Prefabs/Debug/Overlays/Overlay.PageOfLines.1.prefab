@@ -30,7 +30,6 @@ RectTransform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 3186762681329823722}
   - {fileID: 8788283481937532279}
   - {fileID: 6586630136621317749}
   - {fileID: 2356953904693621061}
@@ -44,6 +43,7 @@ RectTransform:
   - {fileID: 5146367875755954692}
   - {fileID: 6832250922069370217}
   - {fileID: 5989983875194079600}
+  - {fileID: 1966148552086957279}
   m_Father: {fileID: 6716937471150557562}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -102,6 +102,7 @@ GameObject:
   - component: {fileID: 6716937471150557562}
   - component: {fileID: 1530312065378527601}
   - component: {fileID: 1551546620711883772}
+  - component: {fileID: 3710246927399298074}
   - component: {fileID: 7325440542535599463}
   - component: {fileID: 4995344556896603789}
   - component: {fileID: 6345345997987867531}
@@ -147,7 +148,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Content: {fileID: 0}
-  GroupdIndex: 0
+  GroupdIndex: 2
   OverlayHandler: {fileID: 0}
   DisableOnHide: 0
   Canvas: {fileID: 4995344556896603789}
@@ -168,6 +169,20 @@ MonoBehaviour:
   Overlay: {fileID: 1530312065378527601}
   KillOnStart: 0
   ShowOnStart: 0
+--- !u!114 &3710246927399298074
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8093220232722217679}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8497c83f21d64d34da04c22c19210a1d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: GameLib::GameLib.DevEntryActivator
+  Overlay: {fileID: 1530312065378527601}
+  DisplayName: System properies
 --- !u!114 &7325440542535599463
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -204,7 +219,7 @@ Canvas:
   m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
-  m_SortingOrder: 0
+  m_SortingOrder: 1000
   m_TargetDisplay: 0
 --- !u!114 &6345345997987867531
 MonoBehaviour:
@@ -254,7 +269,7 @@ CanvasGroup:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8093220232722217679}
   m_Enabled: 1
-  m_Alpha: 1
+  m_Alpha: 0
   m_Interactable: 1
   m_BlocksRaycasts: 1
   m_IgnoreParentGroups: 0
@@ -572,6 +587,26 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 6998296039557972080}
     m_Modifications:
+    - target: {fileID: 936990738211910650, guid: 3106d2c5ae65ffd4ba13f31ee1459bba, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 936990738211910650, guid: 3106d2c5ae65ffd4ba13f31ee1459bba, type: 3}
+      propertyPath: m_AnchorMin.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 936990738211910650, guid: 3106d2c5ae65ffd4ba13f31ee1459bba, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 1067.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 936990738211910650, guid: 3106d2c5ae65ffd4ba13f31ee1459bba, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 533.75
+      objectReference: {fileID: 0}
+    - target: {fileID: 936990738211910650, guid: 3106d2c5ae65ffd4ba13f31ee1459bba, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: -612
+      objectReference: {fileID: 0}
     - target: {fileID: 4210956267048120527, guid: 3106d2c5ae65ffd4ba13f31ee1459bba, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
@@ -686,9 +721,9 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 3106d2c5ae65ffd4ba13f31ee1459bba, type: 3}
---- !u!224 &3186762681329823722 stripped
+--- !u!224 &1966148552086957279 stripped
 RectTransform:
-  m_CorrespondingSourceObject: {fileID: 4210956267048120527, guid: 3106d2c5ae65ffd4ba13f31ee1459bba, type: 3}
+  m_CorrespondingSourceObject: {fileID: 936990738211910650, guid: 3106d2c5ae65ffd4ba13f31ee1459bba, type: 3}
   m_PrefabInstance: {fileID: 1606084862462730021}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &2056230511581785818

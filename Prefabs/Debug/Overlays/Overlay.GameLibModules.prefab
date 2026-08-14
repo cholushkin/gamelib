@@ -11,8 +11,8 @@ GameObject:
   - component: {fileID: 1492614907305748852}
   - component: {fileID: 2742835003194370350}
   - component: {fileID: 1753711388190545792}
+  - component: {fileID: 6215714872061017347}
   - component: {fileID: 7609456823464267182}
-  - component: {fileID: 4271232440416795705}
   - component: {fileID: 8416597129088601780}
   - component: {fileID: 8652166580291128230}
   - component: {fileID: 8756892764325906872}
@@ -78,6 +78,20 @@ MonoBehaviour:
   Overlay: {fileID: 2742835003194370350}
   KillOnStart: 0
   ShowOnStart: 0
+--- !u!114 &6215714872061017347
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 803518848184615059}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8497c83f21d64d34da04c22c19210a1d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: GameLib::GameLib.OverlayActivatorDevEntryButton
+  Overlay: {fileID: 2742835003194370350}
+  DisplayName: GameLib Modules
 --- !u!114 &7609456823464267182
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -92,20 +106,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Overlay: {fileID: 2742835003194370350}
   Keys: 65000000
---- !u!114 &4271232440416795705
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 803518848184615059}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c2881ac1f21f16c40b4be970dc2ec8ec, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  Overlay: {fileID: 2742835003194370350}
-  ButtonIndex: 8
 --- !u!223 &8416597129088601780
 Canvas:
   m_ObjectHideFlags: 0

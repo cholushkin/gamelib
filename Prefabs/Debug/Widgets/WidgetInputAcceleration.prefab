@@ -150,7 +150,7 @@ GameObject:
   - component: {fileID: 7557857029105621231}
   - component: {fileID: 11665224206614961}
   m_Layer: 0
-  m_Name: WidgetCloudInputAcceleration
+  m_Name: WidgetInputAcceleration
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
