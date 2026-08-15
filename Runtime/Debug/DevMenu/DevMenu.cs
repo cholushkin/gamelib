@@ -1,6 +1,9 @@
 using UnityEngine;
 using System.Collections.Generic;
 
+// todo: sorting button, click cycles over different sorting modes(by shortcut, by name, by group and name)
+// todo: transparent/opaque bg for overlays override
+//
 namespace GameLib
 {
     public class DevMenu : MonoBehaviour

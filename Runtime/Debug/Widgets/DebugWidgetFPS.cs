@@ -30,8 +30,9 @@ namespace GameLib
             public Mode Mode;
         }
 
-        private void Start()
+        protected override void Start()
         {
+            base.Start();
             _windowStart = Time.realtimeSinceStartup;
             RefreshView(0, 0f);
         }

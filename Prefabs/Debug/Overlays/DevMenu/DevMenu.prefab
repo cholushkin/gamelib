@@ -207,7 +207,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 978968257622492758, guid: 1785927c87aa169498ca6598e1593360, type: 3}
       propertyPath: m_Name
-      value: DevEntryButton
+      value: DevFloatButton
       objectReference: {fileID: 0}
     - target: {fileID: 3278238784026366715, guid: 1785927c87aa169498ca6598e1593360, type: 3}
       propertyPath: Menu

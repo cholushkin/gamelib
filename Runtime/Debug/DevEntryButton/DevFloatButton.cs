@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace GameLib
 {
-    public class DevEntryButton : MonoBehaviour
+    public class DevFloatButton : MonoBehaviour
     {
         [Header("References")]
         public FloatingWidget Widget;
