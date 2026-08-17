@@ -1,13 +1,23 @@
+// todo: transparent/opaque bg for overlays override
+// idea: add a search/filter bar at the top if the list of registered overlays grows too large
+// idea: persist the `_isSystemHidden` state between play sessions using PlayerPrefs or your save system
+
 using UnityEngine;
 using System.Collections.Generic;
+using System.Linq;
+using TMPro;
 
-// todo: sorting button, click cycles over different sorting modes(by shortcut, by name, by group and name)
-// todo: transparent/opaque bg for overlays override
-//
 namespace GameLib
 {
     public class DevMenu : MonoBehaviour
     {
+        public enum DevSortMode
+        {
+            Shortcut,
+            Name,
+            GroupAndName
+        }
+
         [Header("UI References")]
         public GameObject MenuPanel;
         public Transform MenuContent;
@@ -17,6 +27,10 @@ namespace GameLib
         public GameObject GlobalVisibleIcon;
         public GameObject GlobalInvisibleIcon;
         
+        [Header("Sorting References")]
+        [Tooltip("Optional text label to display the current sort mode on your cycle button")]
+        public TextMeshProUGUI SortModeText;
+        
         [Header("System References")]
         [Tooltip("The root object to destroy when the kill switch is triggered (e.g., the Dev Canvas)")]
         public GameObject RootSystemObject;
@@ -25,10 +39,11 @@ namespace GameLib
         private List<DevEntryMenuItem> _activeItems = new List<DevEntryMenuItem>();
 
         // Cached Activators
-        private OverlayActivatorDevEntryButton[] _allActivators;
+        private OverlayActivatorDevMenu[] _allActivators;
 
-        // Global Visibility State
+        // System States
         private bool _isSystemHidden = false;
+        private DevSortMode _currentSortMode = DevSortMode.Shortcut;
 
         // Kill Switch State
         private int _killClicks = 0;
@@ -41,9 +56,10 @@ namespace GameLib
             
             // Find and cache all activators in the scene once at startup.
             // FindObjectsInactive.Include ensures we find them even if they start disabled.
-            _allActivators = FindObjectsByType<OverlayActivatorDevEntryButton>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            _allActivators = FindObjectsByType<OverlayActivatorDevMenu>(FindObjectsInactive.Include, FindObjectsSortMode.None);
             
             UpdateGlobalVisibilityIcons();
+            UpdateSortModeUI();
         }
 
         public void ToggleMenu()
@@ -66,8 +82,29 @@ namespace GameLib
             }
             _activeItems.Clear();
 
-            // Populate current entries using our cached array
-            foreach (var activator in _allActivators)
+            // Apply sorting logic
+            IEnumerable<OverlayActivatorDevMenu> sortedActivators = _allActivators;
+
+            switch (_currentSortMode)
+            {
+                case DevSortMode.Shortcut:
+                    sortedActivators = _allActivators
+                        .OrderBy(a => GetShortcutSortKey(a))
+                        .ThenBy(a => a.GetDisplayName());
+                    break;
+                case DevSortMode.Name:
+                    sortedActivators = _allActivators
+                        .OrderBy(a => a.GetDisplayName());
+                    break;
+                case DevSortMode.GroupAndName:
+                    sortedActivators = _allActivators
+                        .OrderBy(a => a.Overlay != null ? a.Overlay.GroupdIndex : int.MaxValue)
+                        .ThenBy(a => a.GetDisplayName());
+                    break;
+            }
+
+            // Populate current entries 
+            foreach (var activator in sortedActivators)
             {
                 if (activator == null || activator.Overlay == null) continue;
 
@@ -90,6 +127,42 @@ namespace GameLib
         }
 
         #region Additional Dev Logic
+
+        public void CycleSortMode()
+        {
+            // Cycle through the enum values (0, 1, 2)
+            _currentSortMode = (DevSortMode)(((int)_currentSortMode + 1) % 3);
+            
+            UpdateSortModeUI();
+            
+            // Re-render the menu immediately if it's currently open
+            if (_isMenuOpen)
+            {
+                RefreshMenu();
+            }
+        }
+
+        private void UpdateSortModeUI()
+        {
+            if (SortModeText != null)
+            {
+                // Formats it nicely, e.g., "Sort: Group And Name"
+                SortModeText.text = $"Sort: {_currentSortMode}";
+            }
+        }
+
+        private string GetShortcutSortKey(OverlayActivatorDevMenu activator)
+        {
+            var keyboardActivator = activator.GetComponent<OverlayActivatorKeyboard>();
+            
+            if (keyboardActivator != null && keyboardActivator.Keys != null && keyboardActivator.Keys.Length > 0)
+            {
+                return keyboardActivator.Keys[0].ToString();
+            }
+            
+            // Return a high Unicode character so items without shortcuts get pushed to the bottom of the list
+            return "\uFFFF"; 
+        }
 
         public void ToggleGlobalVisibility()
         {

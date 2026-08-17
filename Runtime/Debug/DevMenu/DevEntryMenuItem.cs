@@ -17,7 +17,7 @@ namespace GameLib
         public GameObject VisibleIcon;
         public GameObject InvisibleIcon;
 
-        private OverlayActivatorDevEntryButton _activator;
+        private OverlayActivatorDevMenu _activator;
         private DevMenu _parentMenu;
         private Button _rootButton;
 
@@ -27,7 +27,7 @@ namespace GameLib
             _rootButton.onClick.AddListener(OnToggleClicked);
         }
 
-        public void Initialize(OverlayActivatorDevEntryButton activator, DevMenu parentMenu)
+        public void Initialize(OverlayActivatorDevMenu activator, DevMenu parentMenu)
         {
             _activator = activator;
             _parentMenu = parentMenu;

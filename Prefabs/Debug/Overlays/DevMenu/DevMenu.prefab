@@ -331,6 +331,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 4619759785902261732, guid: 16cfe2056c1de6546b44dba4d28be6ed, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 7331919388090303807, guid: 16cfe2056c1de6546b44dba4d28be6ed, type: 3}
       propertyPath: m_Name
       value: DevMenu(Overlays)

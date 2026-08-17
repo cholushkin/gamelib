@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace GameLib
 {
-    public class OverlayActivatorDevEntryButton : OverlayActivatorBase
+    public class OverlayActivatorDevMenu : OverlayActivatorBase
     {
         [Tooltip("Leave empty to use the Overlay's GameObject name")]
         public string DisplayName;
