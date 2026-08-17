@@ -1,6 +1,6 @@
 // todo: transparent/opaque bg for overlays override
 // idea: add a search/filter bar at the top if the list of registered overlays grows too large
-// idea: persist the `_isSystemHidden` state between play sessions using PlayerPrefs or your save system
+// idea: persist the _isSystemHidden state between play sessions using PlayerPrefs or your save system
 
 using UnityEngine;
 using System.Collections.Generic;
@@ -44,6 +44,7 @@ namespace GameLib
         // System States
         private bool _isSystemHidden = false;
         private DevSortMode _currentSortMode = DevSortMode.Shortcut;
+        private bool _isInitialized = false;
 
         // Kill Switch State
         private int _killClicks = 0;
@@ -52,20 +53,38 @@ namespace GameLib
 
         void Start()
         {
-            MenuPanel.SetActive(false);
-            
-            // Find and cache all activators in the scene once at startup.
+            if (MenuPanel != null)
+            {
+                // Sync the panel state with the bool, rather than hardcoding 'false'.
+                // If ToggleMenu() woke this object up, _isMenuOpen will already be true!
+                MenuPanel.SetActive(_isMenuOpen);
+            }
+        
+            EnsureInitialized();
+        }
+
+        private void EnsureInitialized()
+        {
+            if (_isInitialized) return;
+
+            // Find and cache all activators in the scene once.
             // FindObjectsInactive.Include ensures we find them even if they start disabled.
             _allActivators = FindObjectsByType<OverlayActivatorDevMenu>(FindObjectsInactive.Include, FindObjectsSortMode.None);
             
             UpdateGlobalVisibilityIcons();
             UpdateSortModeUI();
+
+            _isInitialized = true;
         }
 
         public void ToggleMenu()
         {
+            EnsureInitialized();
+
             _isMenuOpen = !_isMenuOpen;
-            MenuPanel.SetActive(_isMenuOpen);
+            
+            if (MenuPanel != null)
+                MenuPanel.SetActive(_isMenuOpen);
 
             if (_isMenuOpen)
             {
@@ -81,6 +100,8 @@ namespace GameLib
                 Destroy(child.gameObject);
             }
             _activeItems.Clear();
+
+            if (_allActivators == null) return;
 
             // Apply sorting logic
             IEnumerable<OverlayActivatorDevMenu> sortedActivators = _allActivators;
@@ -111,8 +132,11 @@ namespace GameLib
                 var go = Instantiate(MenuItemPrefab, MenuContent);
                 var menuItem = go.GetComponent<DevEntryMenuItem>();
                 
-                menuItem.Initialize(activator, this);
-                _activeItems.Add(menuItem);
+                if (menuItem != null)
+                {
+                    menuItem.Initialize(activator, this);
+                    _activeItems.Add(menuItem);
+                }
             }
         }
         
@@ -122,7 +146,10 @@ namespace GameLib
             
             foreach(var item in _activeItems)
             {
-                item.RefreshStatus();
+                if (item != null)
+                {
+                    item.RefreshStatus();
+                }
             }
         }
 
@@ -130,6 +157,8 @@ namespace GameLib
 
         public void CycleSortMode()
         {
+            EnsureInitialized();
+
             // Cycle through the enum values (0, 1, 2)
             _currentSortMode = (DevSortMode)(((int)_currentSortMode + 1) % 3);
             
@@ -166,6 +195,8 @@ namespace GameLib
 
         public void ToggleGlobalVisibility()
         {
+            EnsureInitialized();
+
             _isSystemHidden = !_isSystemHidden;
 
             // Iterate through our cached array.
