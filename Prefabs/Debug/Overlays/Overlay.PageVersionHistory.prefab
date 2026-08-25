@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 4808223200798068152}
   - component: {fileID: 1301612058190630707}
   - component: {fileID: 6382759291336239845}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: Content
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -93,7 +93,7 @@ GameObject:
   - component: {fileID: 1383684592355616990}
   - component: {fileID: 4003221920947246790}
   - component: {fileID: 436356368095291529}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: Overlay.PageVersionHistory
   m_TagString: Untagged
   m_Icon: {fileID: 4162164826716764455, guid: 0000000000000000d000000000000000, type: 0}
@@ -362,9 +362,21 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 4087844199301135502, guid: a3966b54c5d452640a9e3e72e37b2b05, type: 3}
+      propertyPath: m_Layer
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 5104639790283704099, guid: a3966b54c5d452640a9e3e72e37b2b05, type: 3}
+      propertyPath: m_Layer
+      value: 5
+      objectReference: {fileID: 0}
     - target: {fileID: 8910427683175165203, guid: a3966b54c5d452640a9e3e72e37b2b05, type: 3}
       propertyPath: m_Name
       value: WidgetVersionHistory
+      objectReference: {fileID: 0}
+    - target: {fileID: 8910427683175165203, guid: a3966b54c5d452640a9e3e72e37b2b05, type: 3}
+      propertyPath: m_Layer
+      value: 5
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
