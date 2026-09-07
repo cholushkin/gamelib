@@ -1,3 +1,6 @@
+// todo: expose canvas sorting order to inspector for fine-tuned layering
+// idea: add tweening/fade transitions for alpha when hiding or showing
+
 using Alchemy.Inspector;
 using UnityEngine;
 using UnityEngine.UI;
@@ -13,30 +16,26 @@ namespace GameLib
 
         public override void Show()
         {
+            base.Show();
             ProccessGroupHide();
 
-            if (DisableOnHide)
+            if (DisableOnHide && Content != null)
                 Content.gameObject.SetActive(true);
 
-            CanvasGroup.alpha = 1; // Fully visible
+            CanvasGroup.alpha = 1; 
             CanvasGroup.interactable = true;
             CanvasGroup.blocksRaycasts = true;
-
-            if (OverlayHandler)
-                OverlayHandler.OnOverlayToggle(true);
         }
 
         public override void Hide()
         {
-            if (DisableOnHide)
+            base.Hide();
+            if (DisableOnHide && Content != null)
                 Content.gameObject.SetActive(false);
 
-            CanvasGroup.alpha = 0; // Fully invisible
+            CanvasGroup.alpha = 0; 
             CanvasGroup.interactable = false;
             CanvasGroup.blocksRaycasts = false;
-
-            if (OverlayHandler)
-                OverlayHandler.OnOverlayToggle(false);
         }
 
         public override bool IsShown()
@@ -46,7 +45,8 @@ namespace GameLib
 
         public override void SetScale(float overlayScale)
         {
-            CanvasScaler.scaleFactor = overlayScale;
+            if (CanvasScaler != null)
+                CanvasScaler.scaleFactor = overlayScale;
         }
     }
 }

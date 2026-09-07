@@ -1,3 +1,6 @@
+// todo: implement proper scaling support for non-canvas elements if needed
+// idea: allow non-canvas overlays to use screen space coordinates instead of world space
+
 using UnityEngine;
 
 namespace GameLib
@@ -6,27 +9,23 @@ namespace GameLib
     {
         public override void Show()
         {
+            base.Show();
             ProccessGroupHide();
             
-            if(Content)
+            if (Content)
                 Content.gameObject.SetActive(true);
-            
-            if(OverlayHandler)
-                OverlayHandler.OnOverlayToggle(true);
         }
 
         public override void Hide()
         {
-            if(Content)
+            base.Hide();
+            if (Content)
                 Content.gameObject.SetActive(false);
-            
-            if(OverlayHandler)
-                OverlayHandler.OnOverlayToggle(false);
         }
 
         public override bool IsShown()
         {
-            return Content.gameObject.activeSelf;
+            return Content != null && Content.gameObject.activeSelf;
         }
 
         public override void SetScale(float overlayScale)
