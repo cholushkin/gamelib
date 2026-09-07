@@ -1,7 +1,3 @@
-// todo: transparent/opaque bg for overlays override
-// idea: add a search/filter bar at the top if the list of registered overlays grows too large
-// idea: persist the _isSystemHidden state between play sessions using PlayerPrefs or your save system
-
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
@@ -23,10 +19,6 @@ namespace GameLib
         public Transform MenuContent;
         public GameObject MenuItemPrefab;
         
-        [Header("Global Visibility Icons")]
-        public GameObject GlobalVisibleIcon;
-        public GameObject GlobalInvisibleIcon;
-        
         [Header("Sorting References")]
         [Tooltip("Optional text label to display the current sort mode on your cycle button")]
         public TextMeshProUGUI SortModeText;
@@ -42,7 +34,7 @@ namespace GameLib
         private OverlayActivatorDevMenu[] _allActivators;
 
         // System States
-        private bool _isSystemHidden = false;
+        private bool _isSystemHidden = true; // START HIDDEN: Ensures the first single-click reveals the system
         private DevSortMode _currentSortMode = DevSortMode.Shortcut;
         private bool _isInitialized = false;
 
@@ -55,8 +47,6 @@ namespace GameLib
         {
             if (MenuPanel != null)
             {
-                // Sync the panel state with the bool, rather than hardcoding 'false'.
-                // If ToggleMenu() woke this object up, _isMenuOpen will already be true!
                 MenuPanel.SetActive(_isMenuOpen);
             }
         
@@ -67,13 +57,32 @@ namespace GameLib
         {
             if (_isInitialized) return;
 
-            // Find and cache all activators in the scene once.
-            // FindObjectsInactive.Include ensures we find them even if they start disabled.
             _allActivators = FindObjectsByType<OverlayActivatorDevMenu>(FindObjectsInactive.Include, FindObjectsSortMode.None);
             
-            UpdateGlobalVisibilityIcons();
-            UpdateSortModeUI();
+            // 1. Show the first overlay by default so the first single click does something useful
+            if (_allActivators != null && _allActivators.Length > 0)
+            {
+                var firstActivator = _allActivators
+                    .OrderBy(a => GetShortcutSortKey(a))
+                    .ThenBy(a => a.GetDisplayName())
+                    .FirstOrDefault();
+                    
+                if (firstActivator != null && firstActivator.Overlay != null)
+                {
+                    firstActivator.Overlay.Show();
+                }
+            }
 
+            // 2. Enforce the initial hidden state on all GameObjects so the screen starts clean
+            foreach (var activator in _allActivators)
+            {
+                if (activator != null && activator.Overlay != null)
+                {
+                    activator.Overlay.gameObject.SetActive(!_isSystemHidden);
+                }
+            }
+
+            UpdateSortModeUI();
             _isInitialized = true;
         }
 
@@ -88,13 +97,19 @@ namespace GameLib
 
             if (_isMenuOpen)
             {
+                // 3. Force the system to be globally visible when the menu opens
+                // This ensures any toggled overlays immediately show up over the menu as configured!
+                if (_isSystemHidden)
+                {
+                    ToggleGlobalVisibility();
+                }
+                
                 RefreshMenu();
             }
         }
 
         private void RefreshMenu()
         {
-            // Clear old entries
             foreach (Transform child in MenuContent)
             {
                 Destroy(child.gameObject);
@@ -103,7 +118,6 @@ namespace GameLib
 
             if (_allActivators == null) return;
 
-            // Apply sorting logic
             IEnumerable<OverlayActivatorDevMenu> sortedActivators = _allActivators;
 
             switch (_currentSortMode)
@@ -124,7 +138,6 @@ namespace GameLib
                     break;
             }
 
-            // Populate current entries 
             foreach (var activator in sortedActivators)
             {
                 if (activator == null || activator.Overlay == null) continue;
@@ -159,12 +172,10 @@ namespace GameLib
         {
             EnsureInitialized();
 
-            // Cycle through the enum values (0, 1, 2)
             _currentSortMode = (DevSortMode)(((int)_currentSortMode + 1) % 3);
             
             UpdateSortModeUI();
             
-            // Re-render the menu immediately if it's currently open
             if (_isMenuOpen)
             {
                 RefreshMenu();
@@ -175,7 +186,6 @@ namespace GameLib
         {
             if (SortModeText != null)
             {
-                // Formats it nicely, e.g., "Sort: Group And Name"
                 SortModeText.text = $"Sort: {_currentSortMode}";
             }
         }
@@ -189,19 +199,15 @@ namespace GameLib
                 return keyboardActivator.Keys[0].ToString();
             }
             
-            // Return a high Unicode character so items without shortcuts get pushed to the bottom of the list
             return "\uFFFF"; 
         }
 
         public void ToggleGlobalVisibility()
         {
             EnsureInitialized();
-
+            
             _isSystemHidden = !_isSystemHidden;
 
-            // Iterate through our cached array.
-            // Since it's an array and not a dynamically updating list, 
-            // disabling objects won't cause any collection modification crashes!
             foreach (var activator in _allActivators)
             {
                 if (activator != null && activator.Overlay != null)
@@ -209,19 +215,10 @@ namespace GameLib
                     activator.Overlay.gameObject.SetActive(!_isSystemHidden);
                 }
             }
-
-            UpdateGlobalVisibilityIcons();
-        }
-
-        private void UpdateGlobalVisibilityIcons()
-        {
-            if (GlobalVisibleIcon != null) GlobalVisibleIcon.SetActive(!_isSystemHidden);
-            if (GlobalInvisibleIcon != null) GlobalInvisibleIcon.SetActive(_isSystemHidden);
         }
 
         public void AttemptKillSystem()
         {
-            // Reset click count if too much time has passed
             if (Time.time - _lastKillClickTime > KILL_CLICK_TIMEOUT)
             {
                 _killClicks = 0;
@@ -232,11 +229,10 @@ namespace GameLib
 
             if (_killClicks >= 3)
             {
-                // Nuke the entire system
                 if (RootSystemObject != null)
                     Destroy(RootSystemObject);
                 else
-                    Destroy(gameObject); // Fallback to just destroying the menu
+                    Destroy(gameObject);
             }
         }
 

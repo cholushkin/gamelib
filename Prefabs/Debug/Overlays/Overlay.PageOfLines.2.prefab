@@ -17,10 +17,10 @@ GameObject:
   - component: {fileID: 7806056543036983308}
   - component: {fileID: 5339119651664852137}
   - component: {fileID: 4877256313442159511}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: Overlay.PageOfLines.2
   m_TagString: Untagged
-  m_Icon: {fileID: 0}
+  m_Icon: {fileID: 4162164826716764455, guid: 0000000000000000d000000000000000, type: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
@@ -115,7 +115,7 @@ Canvas:
   m_GameObject: {fileID: 2405382367991364816}
   m_Enabled: 1
   serializedVersion: 3
-  m_RenderMode: 0
+  m_RenderMode: 1
   m_Camera: {fileID: 0}
   m_PlaneDistance: 100
   m_PixelPerfect: 0
@@ -193,7 +193,7 @@ GameObject:
   - component: {fileID: 5832151176963425249}
   - component: {fileID: 2254573376875545494}
   - component: {fileID: 3408167389667288876}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: Content
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -357,9 +357,17 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 2936258358775093973, guid: 99770dbc2f6eb0648bcbda802715d727, type: 3}
+      propertyPath: m_Layer
+      value: 5
+      objectReference: {fileID: 0}
     - target: {fileID: 8146936876062628141, guid: 99770dbc2f6eb0648bcbda802715d727, type: 3}
       propertyPath: m_Name
       value: WidgetScreenMode
+      objectReference: {fileID: 0}
+    - target: {fileID: 8146936876062628141, guid: 99770dbc2f6eb0648bcbda802715d727, type: 3}
+      propertyPath: m_Layer
+      value: 5
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -465,9 +473,17 @@ PrefabInstance:
 
 '
       objectReference: {fileID: 0}
+    - target: {fileID: 8036685386848141445, guid: ec1143f351f5710449f25ba764e08fdd, type: 3}
+      propertyPath: m_Layer
+      value: 5
+      objectReference: {fileID: 0}
     - target: {fileID: 8203707510355795727, guid: ec1143f351f5710449f25ba764e08fdd, type: 3}
       propertyPath: m_Name
       value: WidgetImageAndText
+      objectReference: {fileID: 0}
+    - target: {fileID: 8203707510355795727, guid: ec1143f351f5710449f25ba764e08fdd, type: 3}
+      propertyPath: m_Layer
+      value: 5
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -490,6 +506,10 @@ PrefabInstance:
     - target: {fileID: 811441681342470529, guid: 9c310266acd755d4f8dd3a3b480b12e9, type: 3}
       propertyPath: m_Name
       value: WidgetGameState
+      objectReference: {fileID: 0}
+    - target: {fileID: 811441681342470529, guid: 9c310266acd755d4f8dd3a3b480b12e9, type: 3}
+      propertyPath: m_Layer
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 6311528321867028282, guid: 9c310266acd755d4f8dd3a3b480b12e9, type: 3}
       propertyPath: m_Pivot.x
@@ -571,6 +591,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7513013749884103221, guid: 9c310266acd755d4f8dd3a3b480b12e9, type: 3}
+      propertyPath: m_Layer
+      value: 5
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -589,9 +613,17 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 5832151176963425249}
     m_Modifications:
+    - target: {fileID: 3113099909159139517, guid: caef9d1f7b9a9c340a8f1a28d55da737, type: 3}
+      propertyPath: m_Layer
+      value: 5
+      objectReference: {fileID: 0}
     - target: {fileID: 6947192190349889142, guid: caef9d1f7b9a9c340a8f1a28d55da737, type: 3}
       propertyPath: m_Name
       value: WidgetInputGyro
+      objectReference: {fileID: 0}
+    - target: {fileID: 6947192190349889142, guid: caef9d1f7b9a9c340a8f1a28d55da737, type: 3}
+      propertyPath: m_Layer
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 8365921182812637368, guid: caef9d1f7b9a9c340a8f1a28d55da737, type: 3}
       propertyPath: m_Pivot.x
@@ -695,6 +727,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: WidgetScreenResolution
       objectReference: {fileID: 0}
+    - target: {fileID: 2402087193257111042, guid: e5c26a7a6bc42dc44b5fc0705c67d9c4, type: 3}
+      propertyPath: m_Layer
+      value: 5
+      objectReference: {fileID: 0}
     - target: {fileID: 6147131907313266987, guid: e5c26a7a6bc42dc44b5fc0705c67d9c4, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
@@ -775,6 +811,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7262076795788859438, guid: e5c26a7a6bc42dc44b5fc0705c67d9c4, type: 3}
+      propertyPath: m_Layer
+      value: 5
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -796,6 +836,14 @@ PrefabInstance:
     - target: {fileID: 3829055310890601995, guid: 21ea45bb1015b5043add017ec8fa238e, type: 3}
       propertyPath: m_Name
       value: WidgetSimpleGUI
+      objectReference: {fileID: 0}
+    - target: {fileID: 3829055310890601995, guid: 21ea45bb1015b5043add017ec8fa238e, type: 3}
+      propertyPath: m_Layer
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 7140167447899521085, guid: 21ea45bb1015b5043add017ec8fa238e, type: 3}
+      propertyPath: m_Layer
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 8741862474273838052, guid: 21ea45bb1015b5043add017ec8fa238e, type: 3}
       propertyPath: m_Pivot.x
@@ -895,9 +943,17 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 5832151176963425249}
     m_Modifications:
+    - target: {fileID: 1293329326276578822, guid: e68aed36458d48440bdd2f15f562a6e8, type: 3}
+      propertyPath: m_Layer
+      value: 5
+      objectReference: {fileID: 0}
     - target: {fileID: 3925105736353595005, guid: e68aed36458d48440bdd2f15f562a6e8, type: 3}
       propertyPath: m_Name
       value: WidgetFPS
+      objectReference: {fileID: 0}
+    - target: {fileID: 3925105736353595005, guid: e68aed36458d48440bdd2f15f562a6e8, type: 3}
+      propertyPath: m_Layer
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 5597233488558717307, guid: e68aed36458d48440bdd2f15f562a6e8, type: 3}
       propertyPath: m_Pivot.x
@@ -1077,9 +1133,17 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6243616336348642593, guid: 09a1227af4026e647a821036329a27ed, type: 3}
+      propertyPath: m_Layer
+      value: 5
+      objectReference: {fileID: 0}
     - target: {fileID: 6449881116134279756, guid: 09a1227af4026e647a821036329a27ed, type: 3}
       propertyPath: m_Name
       value: WidgetInputAcceleration
+      objectReference: {fileID: 0}
+    - target: {fileID: 6449881116134279756, guid: 09a1227af4026e647a821036329a27ed, type: 3}
+      propertyPath: m_Layer
+      value: 5
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -1183,6 +1247,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: WidgetInternetReachability
       objectReference: {fileID: 0}
+    - target: {fileID: 4730154109072355144, guid: ee7081ec492df99488b6723ed569654e, type: 3}
+      propertyPath: m_Layer
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 5392810235613709263, guid: ee7081ec492df99488b6723ed569654e, type: 3}
+      propertyPath: m_Layer
+      value: 5
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -1281,9 +1353,17 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 4333987543807485822, guid: 536f6ac052f0dc749b0f6c312e01c594, type: 3}
+      propertyPath: m_Layer
+      value: 5
+      objectReference: {fileID: 0}
     - target: {fileID: 6916524644545928965, guid: 536f6ac052f0dc749b0f6c312e01c594, type: 3}
       propertyPath: m_Name
       value: WidgetSystemLanguage
+      objectReference: {fileID: 0}
+    - target: {fileID: 6916524644545928965, guid: 536f6ac052f0dc749b0f6c312e01c594, type: 3}
+      propertyPath: m_Layer
+      value: 5
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
