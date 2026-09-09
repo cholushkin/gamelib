@@ -86,7 +86,7 @@ public sealed class LayeredInputService : ILayeredInputService, IInitializable, 
     {
         // Find the most restrictive block requested by any system (lowest index = highest priority)
         int lowestAllowedIndex = _config.InputLayers.Count;
-        
+
         if (_activeBlocks.Count > 0)
         {
             lowestAllowedIndex = _activeBlocks.Values.Min();
@@ -98,8 +98,9 @@ public sealed class LayeredInputService : ILayeredInputService, IInitializable, 
             string layerName = _config.InputLayers[i];
             if (_layerStates.TryGetValue(layerName, out var state))
             {
-                // If this layer's index is greater than or equal to the lowest allowed index, it's blocked.
-                state.Value = i < lowestAllowedIndex;
+                // If this layer's index is greater than the lowest allowed index, it's blocked.
+                // The requested layer itself (i == lowestAllowedIndex) stays enabled.
+                state.Value = i <= lowestAllowedIndex;
             }
         }
     }
