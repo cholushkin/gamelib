@@ -14,11 +14,17 @@ The `LayeredInput` architecture is a priority-based, explicit state manager for 
 Define your layer hierarchy in the `LayeredInputConfig` asset. The integer index determines the priority.
 
 ```text
-0: Debug    (Highest priority - Blocking here disables UI and Scene)
-1: UI       (Mid priority - Blocking here disables Scene, leaves Debug active)
-2: Scene    (Lowest priority - Default 3D world interactions)
+0: Debug     (Highest priority - Blocking here disables everything below)
+1: FlyingUI  (Reward-flight skip input - stays active while a modal is open)
+2: ModalUI   (Exclusive popups, e.g. a claim/reward window - disables MainUI and Scene)
+3: MainUI    (Standard HUD / navigation bar)
+4: Scene     (Lowest priority - Default 3D world interactions)
 
 ```
+
+Note: `UI` (the EventSystem's Point/Click/Navigate/Submit map) is intentionally **not** in this
+list. It stays always-enabled so a modal can block `MainUI`/`Scene` without losing its own pointer
+input (e.g. a claim button) - see `ModalUI` in the usage example below.
 
 ## Usage Example
 
@@ -43,8 +49,9 @@ public class ConfirmationModal : MonoBehaviour, IDisposable
 
     public void Open()
     {
-        // Disables "UI" and "Scene". "Debug" remains active.
-        _input.SetMinimumActiveLayer("UI", this); 
+        // Disables "MainUI" and "Scene". "Debug" and "FlyingUI" remain active,
+        // and the always-on "UI" pointer map keeps this modal's own buttons clickable.
+        _input.SetMinimumActiveLayer("ModalUI", this); 
     }
 
     public void Close()

@@ -65,6 +65,7 @@ public sealed class LayeredInputService : ILayeredInputService, IInitializable, 
 
     public void SetMinimumActiveLayer(string layerName, object requester)
     {
+        Debug.Log($"Setting active input layer '{layerName}' to '{requester}'.");
         int index = _config.InputLayers.IndexOf(layerName);
         if (index == -1) 
         {

@@ -7,7 +7,7 @@ using UnityEngine;
 [CreateAssetMenu(menuName = "Game/Input/Layered Input Config", fileName = "LayeredInputConfig")]
 public class LayeredInputConfig : ScriptableObject
 {
-    [Tooltip("Ordered from highest priority to lowest (e.g., Debug, ModalUI, MainUI, Scene)")]
+    [Tooltip("Ordered from highest priority to lowest (e.g., Debug, FlyingUI, ModalUI, MainUI, Scene)")]
     [field: SerializeField]
-    public List<string> InputLayers { get; private set; } = new() { "Debug", "UI", "Scene" };
+    public List<string> InputLayers { get; private set; } = new() { "Debug", "FlyingUI", "ModalUI", "MainUI", "Scene" };
 }
