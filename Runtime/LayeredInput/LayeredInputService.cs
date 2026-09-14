@@ -24,9 +24,14 @@ public sealed class LayeredInputService : ILayeredInputService, IInitializable, 
     {
         _actions = actions;
         _config = config;
+        BuildLayerStates();
     }
 
     public void Initialize()
+    {
+    }
+
+    private void BuildLayerStates()
     {
         for (int i = 0; i < _config.InputLayers.Count; i++)
         {
