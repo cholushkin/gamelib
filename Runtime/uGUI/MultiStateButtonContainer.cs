@@ -16,6 +16,7 @@ public class MultiStateButtonContainer : MonoBehaviour
     [Header("Configuration")]
     [SerializeField] private List<ButtonState> states = new List<ButtonState>();
     [SerializeField] private string defaultState;
+    [SerializeField] private bool cycleStatesOnClick = false;
 
     [Header("Central Event")]
     public UnityEvent onButtonClicked;
@@ -25,47 +26,54 @@ public class MultiStateButtonContainer : MonoBehaviour
 
     private void Awake()
     {
-        InitializeStates();
+        Initialize();
     }
 
-    private void InitializeStates()
+    private void Initialize()
     {
         stateMap = new Dictionary<string, RectTransform>(states.Count);
 
+        // 1. Cache state objects and hide them initially
         foreach (var state in states)
         {
             if (state.stateObject == null) continue;
-
-            // Find all buttons inside the state object (including inactive ones)
-            Button[] childButtons = state.stateObject.GetComponentsInChildren<Button>(true);
-
-            if (childButtons.Length == 1)
-            {
-                // Route the single child button's click to the central event
-                childButtons[0].onClick.AddListener(HandleChildButtonClicked);
-            }
-            else if (childButtons.Length > 1)
-            {
-                Debug.LogError($"[MultiStateButton] Expected 0 or 1 Button inside state '{state.stateName}', but found {childButtons.Length} on {gameObject.name}.", this);
-            }
-
-            // Cache in dictionary for fast lookups
+            
             stateMap[state.stateName] = state.stateObject;
-
-            // Hide the entire state object initially
             state.stateObject.gameObject.SetActive(false);
         }
 
-        // Set initial state if defined
+        // 2. Unify all button routing (regardless of depth or state)
+        Button[] allButtons = GetComponentsInChildren<Button>(true);
+        foreach (var button in allButtons)
+        {
+            button.onClick.AddListener(HandleCentralEvent);
+        }
+
+        // 3. Set initial state if defined
         if (!string.IsNullOrEmpty(defaultState))
         {
             SetState(defaultState);
         }
     }
 
-    private void HandleChildButtonClicked()
+    private void HandleCentralEvent()
     {
+        if (cycleStatesOnClick)
+        {
+            ToggleState();
+        }
+
         onButtonClicked?.Invoke();
+    }
+
+    // Cycles to the next configured state, wrapping around after the last one.
+    public void ToggleState()
+    {
+        if (states.Count == 0) return;
+
+        int currentIndex = states.FindIndex(s => s.stateName == currentState);
+        int nextIndex = (currentIndex + 1) % states.Count;
+        SetState(states[nextIndex].stateName);
     }
 
     public void SetState(string stateName)

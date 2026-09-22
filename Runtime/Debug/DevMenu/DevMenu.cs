@@ -59,14 +59,15 @@ namespace GameLib
 
             _allActivators = FindObjectsByType<OverlayActivatorDevMenu>(FindObjectsInactive.Include, FindObjectsSortMode.None);
             
-            // 1. Show the first overlay by default so the first single click does something useful
+            // 1. Show the default overlay - the one with the lowest GroupdIndex - so the first
+            // single click does something useful.
             if (_allActivators != null && _allActivators.Length > 0)
             {
                 var firstActivator = _allActivators
-                    .OrderBy(a => GetShortcutSortKey(a))
+                    .OrderBy(a => a.Overlay != null ? a.Overlay.GroupdIndex : int.MaxValue)
                     .ThenBy(a => a.GetDisplayName())
                     .FirstOrDefault();
-                    
+
                 if (firstActivator != null && firstActivator.Overlay != null)
                 {
                     firstActivator.Overlay.Show();
