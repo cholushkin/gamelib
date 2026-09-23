@@ -17,6 +17,7 @@ public class MultiStateButtonContainer : MonoBehaviour
     [SerializeField] private List<ButtonState> states = new List<ButtonState>();
     [SerializeField] private string defaultState;
     [SerializeField] private bool cycleStatesOnClick = false;
+    [SerializeField] private bool setDefaultOnAwake = true;
 
     [Header("Central Event")]
     public UnityEvent onButtonClicked;
@@ -50,7 +51,7 @@ public class MultiStateButtonContainer : MonoBehaviour
         }
 
         // 3. Set initial state if defined
-        if (!string.IsNullOrEmpty(defaultState))
+        if (setDefaultOnAwake && !string.IsNullOrEmpty(defaultState))
         {
             SetState(defaultState);
         }
