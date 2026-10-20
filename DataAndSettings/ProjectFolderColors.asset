@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: ProjectFolderColors
   m_EditorClassIdentifier: GameLib.Editor::Gamelib.ProjectFolderColorsSettings
   Rules:
-  - Wildcard: Runtime
+  - Wildcard: Runtime*
     Color: {r: 0.8301887, g: 0.45514292, b: 0.27934018, a: 1}
   - Wildcard: Scenes
     Color: {r: 1, g: 0.83085775, b: 0.75157225, a: 1}
