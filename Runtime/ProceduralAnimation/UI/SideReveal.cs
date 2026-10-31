@@ -1,4 +1,4 @@
-using DG.Tweening;
+using LitMotion;
 using UnityEngine;
 
 namespace GameLib
@@ -10,7 +10,7 @@ namespace GameLib
         public float Duration;
         public Vector2 Offset;
         public Ease Ease;
-        private Tween _tween;
+        private MotionHandle _handle;
 
         private Vector2 _anchoredPosition;
 
@@ -27,26 +27,27 @@ namespace GameLib
                 Play();
         }
 
-        public void Play(TweenCallback onComplete = null)
+        public void Play(System.Action onComplete = null)
         {
             var rt = GetComponent<RectTransform>();
-            _tween?.Kill();
+            if (_handle.IsActive())
+                _handle.Cancel();
+
             rt.gameObject.SetActive(true);
             rt.anchoredPosition = _anchoredPosition;
-            _tween = rt.DOAnchorPos(Offset, Duration)
-                .SetEase(Ease)
-                .From()
-                .SetRelative(true)
-                .SetUpdate(true)
-                .OnComplete(() =>
-                {
-                    onComplete?.Invoke();
-                });
+
+            _handle = LMotion.Create(_anchoredPosition + Offset, _anchoredPosition, Duration)
+                .WithEase(Ease)
+                .WithScheduler(MotionScheduler.UpdateIgnoreTimeScale)
+                .WithImmediateBind()
+                .WithOnComplete(() => onComplete?.Invoke())
+                .Bind(rt, static (v, target) => target.anchoredPosition = v);
         }
 
         public void ForceComplete()
         {
-            _tween?.Complete();
+            if (_handle.IsActive())
+                _handle.Complete();
         }
     }
 }

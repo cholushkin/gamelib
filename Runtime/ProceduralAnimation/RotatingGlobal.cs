@@ -1,4 +1,4 @@
-﻿using DG.Tweening;
+﻿using LitMotion;
 using UnityEngine;
 
 public class RotatingGlobal : MonoBehaviour
@@ -12,7 +12,7 @@ public class RotatingGlobal : MonoBehaviour
     public int LoopCount;
     public Ease Ease;
 
-    private Tweener _tweener;
+    private MotionHandle _handle;
 
     void Reset()
     {
@@ -29,20 +29,26 @@ public class RotatingGlobal : MonoBehaviour
 
     public void StartRotating()
     {
-        _tweener = transform.DORotate(transform.rotation.eulerAngles + AlongAxis * 360, LoopDuration, RotateMode.FastBeyond360)
-            .SetEase(Ease)
-            .SetUpdate(IndependentUpdate)
-            .SetLoops(LoopCount, LoopType.Incremental);
-        _tweener.Goto(LoopDuration * (RandomizeInitialAngle ? Random.value : 0f), true);
+        var from = transform.rotation.eulerAngles;
+        _handle = LMotion.Create(from, from + AlongAxis * 360f, LoopDuration)
+            .WithEase(Ease)
+            .WithScheduler(IndependentUpdate ? MotionScheduler.UpdateIgnoreTimeScale : MotionScheduler.Update)
+            .WithLoops(LoopCount, LoopType.Incremental)
+            .Bind(this, static (v, self) => self.transform.eulerAngles = v);
+
+        if (RandomizeInitialAngle)
+            _handle.Time = LoopDuration * Random.value;
     }
 
     public void PauseRotating()
     {
-        _tweener.Pause();
+        if (_handle.IsActive())
+            _handle.PlaybackSpeed = 0f;
     }
 
     public void ContinueRotating()
     {
-        _tweener.Play();
+        if (_handle.IsActive())
+            _handle.PlaybackSpeed = 1f;
     }
 }

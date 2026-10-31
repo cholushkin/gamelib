@@ -1,4 +1,4 @@
-using DG.Tweening;
+using LitMotion;
 using UnityEngine;
 
 public class SideHide : MonoBehaviour
@@ -8,7 +8,7 @@ public class SideHide : MonoBehaviour
     public Vector2 Offset;
     public Ease Ease;
     private Vector2 _anchoredPosition; // original position
-    private Tween _tween;
+    private MotionHandle _handle;
 
     void OnValidate()
     {
@@ -22,25 +22,29 @@ public class SideHide : MonoBehaviour
             Play();
     }
 
-    public void Play(TweenCallback onComplete = null)
+    public void Play(System.Action onComplete = null)
     {
         var rt = GetComponent<RectTransform>();
-        _tween?.Kill();
+        if (_handle.IsActive())
+            _handle.Cancel();
         rt.anchoredPosition = _anchoredPosition;
-        _tween = rt.DOAnchorPos(Offset, Duration)
-            .SetEase(Ease)
-            .SetRelative(true)
-            .SetUpdate(true)
-            .OnComplete(() =>
+
+        _handle = LMotion.Create(_anchoredPosition, _anchoredPosition + Offset, Duration)
+            .WithEase(Ease)
+            .WithScheduler(MotionScheduler.UpdateIgnoreTimeScale)
+            .WithImmediateBind()
+            .WithOnComplete(() =>
             {
                 rt.anchoredPosition = Vector2.zero;
                 rt.gameObject.SetActive(false);
                 onComplete?.Invoke();
-            });
+            })
+            .Bind(rt, static (v, target) => target.anchoredPosition = v);
     }
 
     public void ForceComplete()
     {
-        _tween?.Complete();
+        if (_handle.IsActive())
+            _handle.Complete();
     }
 }

@@ -1,4 +1,4 @@
-using DG.Tweening;
+using LitMotion;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -23,8 +23,9 @@ public class DoMove : MonoBehaviour
     [Range(0f, 1f)]
     public float Position;
 
-    public UpdateType UpdateType;
-    public bool IsIndependentUpdate;
+    public bool IndependentUpdate;
+
+    private MotionHandle _handle;
 
     void Awake()
     {
@@ -46,14 +47,15 @@ public class DoMove : MonoBehaviour
 
     void DoAction()
     {
-        var tween = transform
-            .DOMove(Target.position, Duration)
-            .SetDelay(Delay)
-            .SetUpdate(UpdateType, IsIndependentUpdate)
-            .SetEase(Ease)
-            .SetLoops(Loops, LoopType)
-            .OnComplete(() => OnComplete.Invoke());
+        _handle = LMotion.Create(transform.position, Target.position, Duration)
+            .WithDelay(Delay)
+            .WithScheduler(IndependentUpdate ? MotionScheduler.UpdateIgnoreTimeScale : MotionScheduler.Update)
+            .WithEase(Ease)
+            .WithLoops(Loops, LoopType)
+            .WithOnComplete(() => OnComplete.Invoke())
+            .Bind(this, static (v, self) => self.transform.position = v);
+
         if (Delay == 0f)
-            tween.fullPosition = Position * Duration;
+            _handle.Time = Position * Duration;
     }
 }

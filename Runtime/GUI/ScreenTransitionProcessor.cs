@@ -1,4 +1,4 @@
-﻿using DG.Tweening;
+﻿using LitMotion;
 using UnityEngine;
 
 namespace GameLib
@@ -11,7 +11,7 @@ namespace GameLib
         public float Duration;
         public Ease ToColorEase;
         public Ease ToTransparentEase;
-        private Sequence _transitionSequence;
+        private MotionHandle _handle;
 
         void Reset()
         {
@@ -20,7 +20,7 @@ namespace GameLib
             ToTransparentEase = Ease.OutSine;
         }
 
-        public void Appear(TweenCallback appearCallback, bool isInstant = false)
+        public void Appear(System.Action appearCallback, bool isInstant = false)
         {
             if (isInstant)
             {
@@ -30,22 +30,27 @@ namespace GameLib
                 return;
             }
 
+            if (_handle.IsActive())
+                _handle.Cancel();
+
             if (CanvasGroup)
             {
-                CanvasGroup.DOFade(1f, Duration)
-                    .OnComplete(appearCallback)
-                    .SetUpdate(UpdateType.Normal, true)
-                    .SetEase(ToColorEase);
+                _handle = LMotion.Create(CanvasGroup.alpha, 1f, Duration)
+                    .WithEase(ToColorEase)
+                    .WithScheduler(MotionScheduler.UpdateIgnoreTimeScale)
+                    .WithOnComplete(() => appearCallback?.Invoke())
+                    .Bind(CanvasGroup, static (a, cg) => cg.alpha = a);
             }
             else
             {
-                DOTween.Kill(_transitionSequence);
-                _transitionSequence = DOTween.Sequence().AppendInterval(Duration).OnComplete(appearCallback);
-                _transitionSequence.Play();
+                _handle = LMotion.Create(0f, 1f, Duration)
+                    .WithScheduler(MotionScheduler.UpdateIgnoreTimeScale)
+                    .WithOnComplete(() => appearCallback?.Invoke())
+                    .RunWithoutBinding();
             }
         }
 
-        public void Disappear(TweenCallback disappearCallback, bool isInstant = false)
+        public void Disappear(System.Action disappearCallback, bool isInstant = false)
         {
             if (isInstant)
             {
@@ -55,18 +60,23 @@ namespace GameLib
                 return;
             }
 
+            if (_handle.IsActive())
+                _handle.Cancel();
+
             if (CanvasGroup)
             {
-                CanvasGroup.DOFade(0f, Duration)
-                    .OnComplete(disappearCallback)
-                    .SetUpdate(UpdateType.Normal, true)
-                    .SetEase(ToTransparentEase);
+                _handle = LMotion.Create(CanvasGroup.alpha, 0f, Duration)
+                    .WithEase(ToTransparentEase)
+                    .WithScheduler(MotionScheduler.UpdateIgnoreTimeScale)
+                    .WithOnComplete(() => disappearCallback?.Invoke())
+                    .Bind(CanvasGroup, static (a, cg) => cg.alpha = a);
             }
             else
             {
-                DOTween.Kill(_transitionSequence);
-                _transitionSequence = DOTween.Sequence().AppendInterval(Duration).OnComplete(disappearCallback);
-                _transitionSequence.Play();
+                _handle = LMotion.Create(0f, 1f, Duration)
+                    .WithScheduler(MotionScheduler.UpdateIgnoreTimeScale)
+                    .WithOnComplete(() => disappearCallback?.Invoke())
+                    .RunWithoutBinding();
             }
         }
 

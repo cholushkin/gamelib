@@ -1,4 +1,4 @@
-﻿using DG.Tweening;
+﻿using LitMotion;
 using UnityEngine;
 
 public class Shaker : MonoBehaviour
@@ -8,16 +8,19 @@ public class Shaker : MonoBehaviour
     public int Vibrato;
     public bool IndependentUpdate;
 
-    public Tweener _tweener;
+    public MotionHandle Handle;
 
-    public void Shake(TweenCallback shakeCallback = null)
+    public void Shake(System.Action shakeCallback = null)
     {
         Clear();
-        _tweener = transform.DOShakePosition(Duration, Strength, Vibrato).OnComplete(shakeCallback)
-            .SetUpdate(IndependentUpdate);
+        Handle = LMotion.Shake.Create(transform.localPosition, Strength, Duration)
+            .WithFrequency(Vibrato)
+            .WithScheduler(IndependentUpdate ? MotionScheduler.UpdateIgnoreTimeScale : MotionScheduler.Update)
+            .WithOnComplete(() => shakeCallback?.Invoke())
+            .Bind(this, static (v, self) => self.transform.localPosition = v);
     }
 
-    public void Shake(float duration, int shakeMode, Vector3 shakeDir, TweenCallback shakeCallback = null)
+    public void Shake(float duration, int shakeMode, Vector3 shakeDir, System.Action shakeCallback = null)
     {
         Clear();
         if (shakeMode == 0)
@@ -39,16 +42,17 @@ public class Shaker : MonoBehaviour
             Vibrato = 4;
         }
 
-        _tweener = transform.DOShakePosition(Duration, -Strength, Vibrato)
-            .SetUpdate(IndependentUpdate);
-        if (shakeCallback != null)
-            _tweener.OnComplete(shakeCallback);
+        Handle = LMotion.Shake.Create(transform.localPosition, -Strength, Duration)
+            .WithFrequency(Vibrato)
+            .WithScheduler(IndependentUpdate ? MotionScheduler.UpdateIgnoreTimeScale : MotionScheduler.Update)
+            .WithOnComplete(() => shakeCallback?.Invoke())
+            .Bind(this, static (v, self) => self.transform.localPosition = v);
     }
 
     public void Clear()
     {
-        _tweener.Kill();
-        _tweener = null;
+        if (Handle.IsActive())
+            Handle.Cancel();
         transform.localPosition = Vector3.zero;
     }
 
@@ -58,5 +62,3 @@ public class Shaker : MonoBehaviour
         Shake(() => Debug.Log("shake end"));
     }
 }
-
-

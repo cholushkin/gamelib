@@ -1,4 +1,4 @@
-﻿using DG.Tweening;
+﻿using LitMotion;
 using UnityEngine;
 
 public class Scaling : MonoBehaviour
@@ -12,6 +12,8 @@ public class Scaling : MonoBehaviour
     public int Loops = -1;
     public AnimationCurve AnimCurve;
 
+    private MotionHandle _handle;
+
     void Awake()
     {
         if (PlayOnAwake)
@@ -20,13 +22,16 @@ public class Scaling : MonoBehaviour
 
     public void StartScaling()
     {
-        var tween = transform
-            .DOScale(Scale, LoopDuration)
-            .SetEase(Ease)
-            .SetUpdate(IndependentUpdate)
-            .SetLoops(Loops, LoopType.Yoyo);
-        if (Ease == Ease.Unset)
-            tween.SetEase(AnimCurve);
-        tween.Goto(RandomizeInitialScale ? LoopDuration * Random.value : 0f, true);
+        var from = transform.localScale;
+        var builder = LMotion.Create(from, Vector3.one * Scale, LoopDuration)
+            .WithScheduler(IndependentUpdate ? MotionScheduler.UpdateIgnoreTimeScale : MotionScheduler.Update)
+            .WithLoops(Loops, LoopType.Yoyo);
+
+        builder = Ease == Ease.CustomAnimationCurve ? builder.WithEase(AnimCurve) : builder.WithEase(Ease);
+
+        _handle = builder.Bind(this, static (v, self) => self.transform.localScale = v);
+
+        if (RandomizeInitialScale)
+            _handle.Time = LoopDuration * Random.value;
     }
 }

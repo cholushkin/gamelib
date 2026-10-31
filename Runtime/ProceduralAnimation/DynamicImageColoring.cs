@@ -1,4 +1,4 @@
-using DG.Tweening;
+using LitMotion;
 using GameLib.Random;
 using Unity.Mathematics;
 using UnityEngine;
@@ -12,13 +12,14 @@ public class DynamicImageColoring : MonoBehaviour
     public Color[] Colors;
     public Image Image;
     public Ease Ease;
-    
+
     [ShowAsRange]
     public float2 Duration;
     public bool StartOnAwake;
     public bool IndependentUpdate;
 
-    private Sequence _seq;
+    private MotionHandle _handle;
+    private int _index;
 
     public void Awake()
     {
@@ -28,25 +29,44 @@ public class DynamicImageColoring : MonoBehaviour
 
     public void Play()
     {
-        NewCycle();
+        _index = 0;
+        PlayNext();
     }
 
     public void Stop()
     {
-        _seq.Kill();
-        _seq = null;
+        if (_handle.IsActive())
+            _handle.Cancel();
     }
 
-    private void NewCycle()
+    private IMotionScheduler Scheduler => IndependentUpdate ? MotionScheduler.UpdateIgnoreTimeScale : MotionScheduler.Update;
+
+    private void PlayNext()
     {
-        _seq = DOTween.Sequence();
-        _seq.SetUpdate(IndependentUpdate);
-        int len = Colors.Length;
-        for (int i = 0; i < len; ++i)
-        {
-            _seq.Append(Image.DOColor(Colors[i], Random.Range(Duration.From(), Duration.To())).SetEase(Ease));
-            _seq.AppendInterval(Random.Range(1, 2));
-        }
-        _seq.OnComplete(NewCycle);
+        if (Colors.Length == 0) return;
+
+        _index %= Colors.Length;
+        var targetColor = Colors[_index];
+        var duration = Random.Range(Duration.From(), Duration.To());
+
+        _handle = LMotion.Create(Image.color, targetColor, duration)
+            .WithEase(Ease)
+            .WithScheduler(Scheduler)
+            .WithOnComplete(() => StartInterval(Random.Range(1, 2)))
+            .Bind(this, static (c, self) => self.Image.color = c);
+    }
+
+    private void StartInterval(float interval)
+    {
+        _handle = LMotion.Create(0f, 1f, interval)
+            .WithScheduler(Scheduler)
+            .WithOnComplete(AdvanceAndPlayNext)
+            .RunWithoutBinding();
+    }
+
+    private void AdvanceAndPlayNext()
+    {
+        _index++;
+        PlayNext();
     }
 }

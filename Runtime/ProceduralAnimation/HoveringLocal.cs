@@ -1,4 +1,4 @@
-﻿using DG.Tweening;
+﻿using LitMotion;
 using UnityEngine;
 
 public class HoveringLocal : MonoBehaviour
@@ -11,6 +11,8 @@ public class HoveringLocal : MonoBehaviour
     public bool VisibilityAware = false;
     public Ease Ease;
 
+    private MotionHandle _handle;
+
     void Reset()
     {
         AlongVector = Vector3.up;
@@ -22,13 +24,16 @@ public class HoveringLocal : MonoBehaviour
 
     public void StartHovering()
     {
-        transform
-            .DOBlendableLocalMoveBy(AlongVector, LoopDuration)
-            .SetRelative(true)
-            .SetEase(Ease)
-            .SetUpdate(IndependentUpdate)
-            .SetLoops(-1, LoopType.Yoyo)
-            .Goto(RandomizeInitialPosition ? LoopDuration * Random.value : 0f, true);
+        var from = transform.localPosition;
+
+        _handle = LMotion.Create(from, from + AlongVector, LoopDuration)
+            .WithEase(Ease)
+            .WithScheduler(IndependentUpdate ? MotionScheduler.UpdateIgnoreTimeScale : MotionScheduler.Update)
+            .WithLoops(-1, LoopType.Yoyo)
+            .Bind(this, static (v, self) => self.transform.localPosition = v);
+
+        if (RandomizeInitialPosition)
+            _handle.Time = LoopDuration * Random.value;
     }
 
     void Awake()
@@ -39,13 +44,18 @@ public class HoveringLocal : MonoBehaviour
 
     void OnBecameVisible()
     {
-        if(VisibilityAware)
-            transform.DOPlay();
+        if (!VisibilityAware)
+            return;
+
+        if (_handle.IsActive())
+            _handle.PlaybackSpeed = 1f;
+        else
+            StartHovering();
     }
 
     void OnBecameInvisible()
     {
-        if(VisibilityAware)
-            transform.DOPause();
+        if (VisibilityAware && _handle.IsActive())
+            _handle.PlaybackSpeed = 0f;
     }
 }

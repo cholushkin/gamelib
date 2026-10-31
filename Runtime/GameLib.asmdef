@@ -2,7 +2,7 @@
     "name": "GameLib",
     "rootNamespace": "",
     "references": [
-        "DOTween.Modules",
+        "LitMotion",
         "Unity.TextMeshPro",
         "Unity.InputSystem",
         "Unity.Mathematics",
@@ -13,8 +13,7 @@
         "Unity.ResourceManager",
         "VContainer",
         "Alchemy",
-        "UniTask.Addressables",
-        "VersionHistoryRuntime"
+        "UniTask.Addressables"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

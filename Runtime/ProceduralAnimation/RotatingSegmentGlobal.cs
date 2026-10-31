@@ -1,4 +1,4 @@
-﻿using DG.Tweening;
+﻿using LitMotion;
 using UnityEngine;
 
 public class RotatingSegmentGlobal : MonoBehaviour
@@ -12,7 +12,8 @@ public class RotatingSegmentGlobal : MonoBehaviour
     [Tooltip("-1 == infinity")] public int LoopCount;
     public Ease Ease;
 
-    public Tweener Tweener { get; private set; }
+    public MotionHandle Handle => _handle;
+    private MotionHandle _handle;
     public Vector3 InitialAngle { get; set; }
 
     void Reset()
@@ -32,35 +33,40 @@ public class RotatingSegmentGlobal : MonoBehaviour
 
     public void StartRotating()
     {
-        if (Tweener != null)
+        if (_handle.IsActive())
         {
-            Tweener.Play();
+            _handle.PlaybackSpeed = 1f;
             return;
         }
         DoCW();
-        Tweener.Goto(LoopDuration * (RandomizeInitialAngle ? Random.value : 0f), true);
+
+        if (RandomizeInitialAngle)
+            _handle.Time = LoopDuration * Random.value;
     }
 
     public void PauseRotating()
     {
-        Tweener.Pause();
+        if (_handle.IsActive())
+            _handle.PlaybackSpeed = 0f;
     }
+
+    private IMotionScheduler Scheduler => IndependentUpdate ? MotionScheduler.UpdateIgnoreTimeScale : MotionScheduler.Update;
 
     private void DoCW()
     {
-        Tweener = transform.DORotate(InitialAngle + AlongAxis * SegmentAngle * 0.5f, LoopDuration * 0.5f, RotateMode.Fast)
-            .SetEase(Ease)
-            .OnComplete(DoCCW)
-            .SetUpdate(IndependentUpdate)
-            .SetLoops(1);
+        _handle = LMotion.Create(transform.rotation.eulerAngles, InitialAngle + AlongAxis * SegmentAngle * 0.5f, LoopDuration * 0.5f)
+            .WithEase(Ease)
+            .WithScheduler(Scheduler)
+            .WithOnComplete(DoCCW)
+            .Bind(this, static (v, self) => self.transform.eulerAngles = v);
     }
 
     private void DoCCW()
     {
-        Tweener = transform.DORotate(InitialAngle - AlongAxis * SegmentAngle * 0.5f, LoopDuration * 0.5f, RotateMode.Fast)
-            .SetEase(Ease)
-            .OnComplete(DoCW)
-            .SetUpdate(IndependentUpdate)
-            .SetLoops(1);
+        _handle = LMotion.Create(transform.rotation.eulerAngles, InitialAngle - AlongAxis * SegmentAngle * 0.5f, LoopDuration * 0.5f)
+            .WithEase(Ease)
+            .WithScheduler(Scheduler)
+            .WithOnComplete(DoCW)
+            .Bind(this, static (v, self) => self.transform.eulerAngles = v);
     }
 }

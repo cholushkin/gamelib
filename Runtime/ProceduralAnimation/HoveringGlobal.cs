@@ -1,5 +1,4 @@
-﻿using System;
-using DG.Tweening;
+﻿using LitMotion;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -13,6 +12,8 @@ public class HoveringGlobal : MonoBehaviour
     public Rigidbody Rigidbody;
     public Ease Ease;
 
+    private MotionHandle _handle;
+
     void Reset()
     {
         AlongVector = Vector3.up;
@@ -24,22 +25,22 @@ public class HoveringGlobal : MonoBehaviour
 
     void StartHovering()
     {
-        if(Rigidbody)
-            Rigidbody
-                .DOMove(AlongVector, LoopDuration)
-                .SetRelative(true)
-                .SetEase(Ease)
-                .SetUpdate(UpdateType.Fixed)
-                .SetLoops(-1, LoopType.Yoyo)
-                .Goto(RandomizeInitialPosition ? LoopDuration * Random.value : 0f, true);
-        else
-            transform
-                .DOMove(AlongVector, LoopDuration)
-                .SetRelative(true)
-                .SetEase(Ease)
-                .SetUpdate(UpdateType.Fixed)
-                .SetLoops(-1, LoopType.Yoyo)
-                .Goto(RandomizeInitialPosition ? LoopDuration * Random.value : 0f, true);
+        var from = Rigidbody ? Rigidbody.position : transform.position;
+
+        _handle = LMotion.Create(from, from + AlongVector, LoopDuration)
+            .WithEase(Ease)
+            .WithScheduler(MotionScheduler.FixedUpdate)
+            .WithLoops(-1, LoopType.Yoyo)
+            .Bind(this, static (v, self) =>
+            {
+                if (self.Rigidbody)
+                    self.Rigidbody.position = v;
+                else
+                    self.transform.position = v;
+            });
+
+        if (RandomizeInitialPosition)
+            _handle.Time = LoopDuration * Random.value;
     }
 
     void Awake()
@@ -50,9 +51,7 @@ public class HoveringGlobal : MonoBehaviour
 
     private void OnDestroy()
     {
-        if (transform != null)
-        {
-            DOTween.Kill(transform);
-        }
+        if (_handle.IsActive())
+            _handle.Cancel();
     }
 }

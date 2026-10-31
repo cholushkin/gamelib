@@ -1,4 +1,3 @@
-// todo: consider adding support for a lightweight animation library (like DOTween) to fade text/image colors.
 // idea: add a format string field directly to this base class so all derived text widgets share the same formatting logic.
 using TMPro;
 using UnityEngine;

@@ -1,5 +1,4 @@
-﻿using DG.Tweening;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class Follower : MonoBehaviour
 {
@@ -13,10 +12,10 @@ public class Follower : MonoBehaviour
     public bool UseFixedUpdate;
 
     private Vector3 _velocity = Vector3.zero;
-    private TweenCallback ReachTargetCallback;
+    private System.Action ReachTargetCallback;
     private float CallbackShootDistance;
 
-    
+
 
     void Reset()
     {
@@ -83,7 +82,7 @@ public class Follower : MonoBehaviour
         }
     }
 
-    public void SetCallback(TweenCallback reachTargetCallback, float shootDistance = 0.3f)
+    public void SetCallback(System.Action reachTargetCallback, float shootDistance = 0.3f)
     {
         ReachTargetCallback = reachTargetCallback;
         CallbackShootDistance = shootDistance;
