@@ -175,42 +175,27 @@ namespace GameLib.Log
 
         private static ILoggerFactory CreateFallbackUnityConsoleFactory()
         {
+            var minLevel = Debug.isDebugBuild ? LogLevel.Information : LogLevel.Warning;
+
             return Microsoft.Extensions.Logging.LoggerFactory.Create(builder =>
             {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-                builder.SetMinimumLevel(LogLevel.Information);
-                builder.AddFilter((cat, lvl) => lvl >= LogLevel.Information);
-#else
-                builder.SetMinimumLevel(LogLevel.Warning);
-                builder.AddFilter((cat, lvl) => lvl >= LogLevel.Warning);
-#endif
+                builder.SetMinimumLevel(minLevel);
+                builder.AddFilter((cat, lvl) => lvl >= minLevel);
                 builder.AddZLoggerUnityDebug(o =>
                 {
                     o.UsePlainTextFormatter();
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-                    o.PrettyStacktrace = true;
-#else
-                    o.PrettyStacktrace = false;
-#endif
+                    o.PrettyStacktrace = Debug.isDebugBuild;
                 });
             });
         }
 
         private void AddUnityConsoleProviderFallback(ILoggingBuilder builder)
         {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            builder.SetMinimumLevel(LogLevel.Information);
-#else
-            builder.SetMinimumLevel(LogLevel.Warning);
-#endif
+            builder.SetMinimumLevel(Debug.isDebugBuild ? LogLevel.Information : LogLevel.Warning);
             builder.AddZLoggerUnityDebug(o =>
             {
                 o.UsePlainTextFormatter();
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-                o.PrettyStacktrace = true;
-#else
-                o.PrettyStacktrace = false;
-#endif
+                o.PrettyStacktrace = Debug.isDebugBuild;
             });
         }
     }
