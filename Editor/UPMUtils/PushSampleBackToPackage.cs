@@ -1,51 +1,98 @@
 
+#if UNITY_EDITOR
+
 using System;
 using System.IO;
 using UnityEditor;
 using UnityEditor.PackageManager;
 using UnityEditor.PackageManager.UI;
 using UnityEngine;
+using Debug = UnityEngine.Debug;
+using PackageInfo = UnityEditor.PackageManager.PackageInfo;
 
 namespace GameLib.Editor
 {
     public static class PushSampleBackToPackage
     {
-        private const string MenuPath = "Assets/Push Sample Back to Package";
+        private const string MenuPath =
+            "Assets/Push Sample Back to Package";
 
         [MenuItem(MenuPath, false, 2000)]
-        private static void Execute()
+        private static void ExecuteMenu()
+        {
+            PushSelected();
+        }
+
+        [MenuItem(MenuPath, true)]
+        private static bool ValidateMenu()
+        {
+            return TryFindSelectedSample(out _);
+        }
+
+        public static bool PushSelected()
         {
             if (!TryFindSelectedSample(out var sample))
-                return;
+            {
+                Debug.LogWarning(
+                    "[UPM] Select an imported sample " +
+                    "under Assets/Samples.");
+                return false;
+            }
 
+            return Push(sample);
+        }
+
+        public static bool Push(Sample sample)
+        {
             try
             {
+                if (!sample.isImported ||
+                    string.IsNullOrEmpty(sample.importPath) ||
+                    string.IsNullOrEmpty(sample.resolvedPath))
+                {
+                    Debug.LogWarning("[UPM] Invalid imported sample.");
+                    return false;
+                }
+
                 string source = Path.GetFullPath(sample.importPath);
                 string destination = Path.GetFullPath(sample.resolvedPath);
+
+                if (!Directory.Exists(source) ||
+                    !Directory.Exists(destination))
+                {
+                    Debug.LogError(
+                        "[UPM] Sample source or destination does not exist.");
+                    return false;
+                }
+
+                if (!IsWritablePackagePath(destination))
+                {
+                    Debug.LogError(
+                        "[UPM] Destination is not inside a " +
+                        "local or embedded package.");
+                    return false;
+                }
 
                 int count = CopyDirectory(source, destination);
 
                 AssetDatabase.Refresh();
 
                 Debug.Log(
-                    $"[Push Sample Back to Package] " +
-                    $"Copied {count} files.\n" +
+                    $"[UPM] Push Sample Back to Package: " +
+                    $"copied {count} files.\n" +
                     $"From: {source}\n" +
                     $"To: {destination}");
+
+                return true;
             }
             catch (Exception exception)
             {
                 Debug.LogException(exception);
+                return false;
             }
         }
 
-        [MenuItem(MenuPath, true)]
-        private static bool Validate()
-        {
-            return TryFindSelectedSample(out _);
-        }
-
-        private static bool TryFindSelectedSample(out Sample result)
+        public static bool TryFindSelectedSample(out Sample result)
         {
             result = default;
 
@@ -64,11 +111,9 @@ namespace GameLib.Editor
             string selectedPath = Path.GetFullPath(
                 Path.Combine(projectRoot, assetPath));
 
-            foreach (var package in UnityEditor.PackageManager.PackageInfo.GetAllRegisteredPackages())
+            foreach (var package in PackageInfo.GetAllRegisteredPackages())
             {
-                // Only writable development packages.
-                if (package.source != PackageSource.Local &&
-                    package.source != PackageSource.Embedded)
+                if (!IsWritable(package))
                     continue;
 
                 var samples = Sample.FindByPackage(
@@ -94,10 +139,7 @@ namespace GameLib.Editor
                         !Directory.Exists(resolvedPath))
                         continue;
 
-                    // Ensure destination belongs to this package.
-                    if (!IsInside(
-                            resolvedPath,
-                            Path.GetFullPath(package.resolvedPath)))
+                    if (!IsInside(resolvedPath, package.resolvedPath))
                         continue;
 
                     result = sample;
@@ -106,6 +148,25 @@ namespace GameLib.Editor
             }
 
             return false;
+        }
+
+        private static bool IsWritablePackagePath(string path)
+        {
+            foreach (var package in PackageInfo.GetAllRegisteredPackages())
+            {
+                if (IsWritable(package) &&
+                    !string.IsNullOrEmpty(package.resolvedPath) &&
+                    IsInside(path, package.resolvedPath))
+                    return true;
+            }
+
+            return false;
+        }
+
+        private static bool IsWritable(PackageInfo package)
+        {
+            return package.source == PackageSource.Local ||
+                   package.source == PackageSource.Embedded;
         }
 
         private static bool IsInside(string path, string directory)
@@ -142,8 +203,7 @@ namespace GameLib.Editor
                         Path.DirectorySeparatorChar,
                         Path.AltDirectorySeparatorChar);
 
-                string target = Path.Combine(
-                    destination, relativePath);
+                string target = Path.Combine(destination, relativePath);
 
                 Directory.CreateDirectory(
                     Path.GetDirectoryName(target));
@@ -156,3 +216,5 @@ namespace GameLib.Editor
         }
     }
 }
+
+#endif
