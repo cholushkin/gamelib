@@ -23,7 +23,7 @@ namespace GameLib.Editor
         private static readonly Color NeutralColor =
             new Color(0.40f, 0.40f, 0.40f);
 
-        [MenuItem("Window/GameLib/UPM Utils")]
+        [MenuItem("Window/GameLib/UPM Utils/UPM Utils")]
         public static void Open()
         {
             GetWindow<UPMUtilsWindow>("UPM Utils");

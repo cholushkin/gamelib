@@ -1,134 +1,154 @@
-// todo: Add a keyboard shortcut binding (e.g., Ctrl+Shift+G) in EditorPrefs to let developers trigger the active DEV sequence without clicking the toolbar button.
-// idea: Add a visual indicator in the dropdown label (e.g., a checkmark or warning sign) showing whether all required parent dependencies for the selected sequence exist in Build Settings.
 
+using System.Collections.Generic;
 using UnityEditor;
-using UnityEditor.Overlays;
-using UnityEditor.SceneManagement;
 using UnityEditor.Toolbars;
 using UnityEngine;
-using UnityEngine.SceneManagement;
-using UnityEngine.UIElements;
 
 namespace GameLib.Editor
 {
-    [EditorToolbarElement(id, typeof(SceneView))]
-    public class EditorPlayWithDependencies : VisualElement
+    public static class SceneLoaderToolbar
     {
-        public const string id = "GameLib/SceneLoader/EditorPlayWithDependencies";
-        
-        private static GUIContent playButtonContent;
-        private static GUIContent dropdownButtonContent;
+        private const string ToolbarPath = "GameLib/SceneLoader";
 
-        public EditorPlayWithDependencies()
+        private const string ReleaseFlag = "SceneLoaderRunRelease";
+        private const string SequenceOverride = "SceneLoaderSequenceOverride";
+
+        private const int MaxVisibleChars = 24;
+
+        // --------------------------------------------------
+        // Main toolbar group
+        // --------------------------------------------------
+
+        [MainToolbarElement(
+            ToolbarPath,
+            defaultDockPosition = MainToolbarDockPosition.Left,
+            defaultDockIndex = 200)]
+        public static IEnumerable<MainToolbarElement> CreateToolbar()
         {
             SceneSequenceController.RefreshSequences();
 
-            // Using clean emoji/text labels instead of texture loading
-            playButtonContent = new GUIContent("▶️DEV", "Play selected scene sequence with dependencies (Override)");
-            dropdownButtonContent = new GUIContent(GetDropdownLabel(), "Select scene loading sequence");
+            // Sequence dropdown
+            yield return new MainToolbarDropdown(
+                new MainToolbarContent(
+                    GetDropdownLabel(),
+                    "Select scene loading sequence"),
+                ShowSequenceDropdown);
 
-            var toolbar = new IMGUIContainer(OnGUI);
-            Add(toolbar);
+            // DEV button
+            yield return new MainToolbarButton(
+                new MainToolbarContent(
+                    "▶ DEV",
+                    "Play selected scene sequence with dependencies (Override)"),
+                RunDevSequence);
 
-            style.flexDirection = FlexDirection.Row;
+            // RELEASE button
+            yield return new MainToolbarButton(
+                new MainToolbarContent(
+                    "▶ REL",
+                    "Play the game from Boot using the RELEASE Default Sequence"),
+                RunReleaseSequence);
         }
 
-        private void OnGUI()
+        // --------------------------------------------------
+        // Sequence dropdown
+        // --------------------------------------------------
+
+        private static void ShowSequenceDropdown(Rect dropdownRect)
         {
-            // Widened container
-            GUILayout.BeginHorizontal(GUILayout.Width(250));
+            SceneSequenceController.RefreshSequences();
 
-            // Dropdown Selector Button
-            dropdownButtonContent.text = GetDropdownLabel();
-            if (GUILayout.Button(dropdownButtonContent, EditorStyles.toolbarButton, GUILayout.Width(200)))
-            {
-                SceneSequenceController.RefreshSequences();
-                ShowDropdown();
-            }
-
-            
-            // Play Sequence Button (DEV)
-            if (GUILayout.Button(playButtonContent, EditorStyles.toolbarButton, GUILayout.Width(45)))
-            {
-                // Erase release flag when running a custom DEV sequence
-                SessionState.EraseBool("SceneLoaderRunRelease");
-                SceneSequenceController.RunSelectedSequence();
-            }
-
-            GUILayout.EndHorizontal();
-        }
-
-        private void ShowDropdown()
-        {
-            var availableSequences = SceneSequenceController.AvailableSequences;
-            string currentSeq = SceneSequenceController.CurrentSequence;
+            var sequences = SceneSequenceController.AvailableSequences;
+            var current = SceneSequenceController.CurrentSequence;
 
             var menu = new GenericMenu();
-            for (int i = 0; i < availableSequences.Count; i++)
+
+            if (sequences.Count == 0)
             {
-                var seqName = availableSequences[i];
-                menu.AddItem(new GUIContent(seqName), string.Equals(seqName, currentSeq), OnSeqSelected, seqName);
+                menu.AddDisabledItem(
+                    new GUIContent("No sequences available"));
             }
 
-            menu.ShowAsContext();
+            foreach (var sequence in sequences)
+            {
+                string sequenceName = sequence;
+
+                menu.AddItem(
+                    new GUIContent(sequenceName),
+                    string.Equals(sequenceName, current),
+                    () => SelectSequence(sequenceName));
+            }
+
+            menu.DropDown(dropdownRect);
         }
 
-        private string GetDropdownLabel()
+        private static void SelectSequence(string sequenceName)
         {
-            const int maxVisibleChars = 24;
-            string lastSelectedSequence = SceneSequenceController.CurrentSequence;
+            SceneSequenceController.CurrentSequence = sequenceName;
+            Refresh();
+        }
 
-            if (string.IsNullOrEmpty(lastSelectedSequence))
+        private static string GetDropdownLabel()
+        {
+            string name = SceneSequenceController.CurrentSequence;
+
+            if (string.IsNullOrEmpty(name))
                 return "[...]";
 
-            string name = lastSelectedSequence;
-            if (name.Length > maxVisibleChars)
+            if (name.Length > MaxVisibleChars)
             {
-                name = "…" + name.Substring(name.Length - maxVisibleChars);
+                name = "…" + name.Substring(
+                    name.Length - MaxVisibleChars);
             }
 
-            return $"{name} […]";
+            return name;
         }
 
-        private void OnSeqSelected(object userData)
+        // --------------------------------------------------
+        // DEV play
+        // --------------------------------------------------
+
+        private static void RunDevSequence()
         {
-            SceneSequenceController.CurrentSequence = (string)userData;
+            SessionState.EraseBool(ReleaseFlag);
+            SceneSequenceController.RunSelectedSequence();
         }
 
-        public static void RunSelectedSequence() => SceneSequenceController.RunSelectedSequence();
-        public static void SelectNextSequence() => SceneSequenceController.SelectNextSequence();
-    }
+        // --------------------------------------------------
+        // RELEASE play
+        // --------------------------------------------------
 
-    [EditorToolbarElement(id, typeof(SceneView))]
-    public class EditorPlayAsRelease : EditorToolbarButton
-    {
-        public const string id = "GameLib/SceneLoader/EditorPlayAsRelease";
-
-        public EditorPlayAsRelease()
+        private static void RunReleaseSequence()
         {
-            text = "▶️REL";
-            tooltip = "Play the game from Boot using the RELEASE Default Sequence";
-            clicked += OnClick;
-        }
+            if (Application.isPlaying)
+                return;
 
-        private void OnClick()
-        {
-            if (Application.isPlaying) return;
-        
-            Debug.Log("[SceneLoader] Forcing Play Mode to RELEASE (Boot -> Default Sequence)");
-            // Set an explicit Release flag in SessionState
-            SessionState.SetBool("SceneLoaderRunRelease", true);
-            SessionState.EraseString("SceneLoaderSequenceOverride");
-        
+            Debug.Log(
+                "[SceneLoader] Forcing Play Mode to RELEASE (Boot -> Default Sequence)");
+
+            SessionState.SetBool(ReleaseFlag, true);
+            SessionState.EraseString(SequenceOverride);
+
             SceneSequenceController.RunStartScene();
         }
-    }
 
-    [Overlay(typeof(SceneView), "🔀")]
-    public class EditorGameLibToolbar : ToolbarOverlay
-    {
-        public EditorGameLibToolbar() : base(EditorPlayWithDependencies.id, EditorPlayAsRelease.id)
+        // --------------------------------------------------
+        // Public helpers
+        // --------------------------------------------------
+
+        public static void RunSelectedSequence()
         {
+            SceneSequenceController.RunSelectedSequence();
+        }
+
+        public static void SelectNextSequence()
+        {
+            SceneSequenceController.SelectNextSequence();
+            Refresh();
+        }
+
+        public static void Refresh()
+        {
+            MainToolbar.Refresh(ToolbarPath);
         }
     }
 }
