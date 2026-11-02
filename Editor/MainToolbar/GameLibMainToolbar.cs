@@ -57,11 +57,5 @@ namespace GameLib.Editor
         {
             MainToolbar.Refresh(ToolbarPath);
         }
-
-        [MenuItem("GameLib/Refresh Main Toolbar")]
-        private static void RefreshMenu()
-        {
-            Refresh();
-        }
     }
 }
