@@ -5,7 +5,7 @@ public class Rotator : MonoBehaviour
 {
     public Ease Ease;
     public bool IndependentUpdate;
-    public MotionHandle RotationHandle;
+    [System.NonSerialized] public MotionHandle RotationHandle;
 
     public void RotateTo(float eulerAngleY, float duration = 1f, System.Action rotationCallback = null)
     {

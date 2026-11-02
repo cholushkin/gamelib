@@ -57,7 +57,7 @@ namespace GameLib
         {
             if (_isInitialized) return;
 
-            _allActivators = FindObjectsByType<OverlayActivatorDevMenu>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            _allActivators = FindObjectsByType<OverlayActivatorDevMenu>(FindObjectsInactive.Include);
             
             // 1. Show the default overlay - the one with the lowest GroupdIndex - so the first
             // single click does something useful.

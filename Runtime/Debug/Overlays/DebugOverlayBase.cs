@@ -53,8 +53,10 @@ namespace GameLib
             }
         }
 
-        protected virtual void OnDestroy()
+        protected override void OnDestroy()
         {
+            base.OnDestroy();
+
             if (BlocksInput && InputService != null)
             {
                 InputService.ReleaseLayerBlock(this);

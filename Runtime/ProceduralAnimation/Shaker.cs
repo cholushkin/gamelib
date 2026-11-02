@@ -8,7 +8,7 @@ public class Shaker : MonoBehaviour
     public int Vibrato;
     public bool IndependentUpdate;
 
-    public MotionHandle Handle;
+    [System.NonSerialized] public MotionHandle Handle;
 
     public void Shake(System.Action shakeCallback = null)
     {

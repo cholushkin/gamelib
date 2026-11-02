@@ -14,11 +14,7 @@ namespace GameLib.Log
             builder.AddZLoggerUnityDebug(options =>
             {
                 options.UsePlainTextFormatter();
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-                options.PrettyStacktrace = true;
-#else
-                options.PrettyStacktrace = false;
-#endif
+                options.PrettyStacktrace = Debug.isDebugBuild;
             });
         }
     }

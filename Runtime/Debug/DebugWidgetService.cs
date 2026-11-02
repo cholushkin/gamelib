@@ -41,7 +41,7 @@ namespace GameLib
             Debug.Log("[DebugWidgetService] Booting up...");
 
             // 1. Auto-discover all widgets in the loaded scenes
-            var foundWidgets = Object.FindObjectsByType<DebugWidgetBase>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            var foundWidgets = Object.FindObjectsByType<DebugWidgetBase>(FindObjectsInactive.Include);
             _widgets.AddRange(foundWidgets);
 
             Debug.Log($"[DebugWidgetService] Discovered {_widgets.Count} widgets. Applying states...");
