@@ -354,18 +354,25 @@ namespace GameLib.SceneFlow
             SceneInstance instance;
             try
             {
-                AsyncOperationHandle<SceneInstance> op;
+                // The EnqueueParent override must stay pushed until the scene's GameObjects have
+                // actually Awoken, not just until the Addressables call has been *started* -
+                // LoadSceneAsync(activateOnLoad: true) only completes once the new scene is loaded
+                // AND activated (Awake/Start already ran), so the await itself must be inside the
+                // using block. Disposing the override right after issuing the call (as this used to)
+                // pops it before Awake() ever runs, since Addressables always defers activation past
+                // the current synchronous call - every scene then silently fell back to the global
+                // root scope regardless of its requested DI parent.
                 using (LifetimeScope.EnqueueParent(parentScope))
                 {
-                    op = Addressables.LoadSceneAsync(definition.Scene, LoadSceneMode.Additive, activateOnLoad: true);
-                }
+                    var op = Addressables.LoadSceneAsync(definition.Scene, LoadSceneMode.Additive, activateOnLoad: true);
 
-                // Deliberately CancellationToken.None: UniTask's own cancellation only abandons the
-                // *await*, not the underlying Addressables operation (autoReleaseWhenCanceled
-                // defaults to false there too), so a cancelled caller would otherwise leave a scene
-                // loading untracked in the background. We always let the real operation settle, then
-                // decide what to do with it based on `ct` below.
-                instance = await op.ToUniTask(progress: progress, cancellationToken: CancellationToken.None);
+                    // Deliberately CancellationToken.None: UniTask's own cancellation only abandons the
+                    // *await*, not the underlying Addressables operation (autoReleaseWhenCanceled
+                    // defaults to false there too), so a cancelled caller would otherwise leave a scene
+                    // loading untracked in the background. We always let the real operation settle, then
+                    // decide what to do with it based on `ct` below.
+                    instance = await op.ToUniTask(progress: progress, cancellationToken: CancellationToken.None);
+                }
             }
             catch (Exception ex)
             {
