@@ -14,9 +14,6 @@ namespace GameLib
         public bool IncludeModuleSystem { get; set; } = true;
         public bool IncludeLayeredInput { get; set; } = true;
 
-        public SceneSequenceConfig SequenceConfig { get; set; }
-        public SceneDependencyConfig DependencyConfig { get; set; }
-
         // Must be the SAME InputActionAsset instance the scene's InputSystemUIInputModule
         // references, so LayeredInputService's map enable/disable actually reaches it.
         public InputActionAsset InputActions { get; set; }
@@ -35,21 +32,6 @@ namespace GameLib
                     .AsSelf()
                     .AsImplementedInterfaces();
             }
-
-            // SceneLoaderService's constructor requires both configs non-null (and it's an
-            // IInitializable, eagerly resolved during Build()) - fall back to empty instances
-            // when no asset is assigned, so scenes/projects that don't use Addressable sequences
-            // don't crash on boot. RunStartSequenceAsync already no-ops on an empty DefaultSequence.
-            builder.RegisterInstance(SequenceConfig != null
-                ? SequenceConfig
-                : ScriptableObject.CreateInstance<SceneSequenceConfig>());
-            builder.RegisterInstance(DependencyConfig != null
-                ? DependencyConfig
-                : ScriptableObject.CreateInstance<SceneDependencyConfig>());
-
-            builder.Register<SceneLoaderService>(Lifetime.Singleton)
-                .AsImplementedInterfaces()
-                .AsSelf();
 
             if (IncludeLayeredInput)
             {
