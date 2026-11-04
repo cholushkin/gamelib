@@ -73,25 +73,25 @@ namespace GameLib.Editor
 
         public static event Action StatusChanged;
 
-        [MenuItem("Window/GameLib/UPM Utils/Pull Local Packages")]
+        [MenuItem("GameLib/UPM Utils/Pull Local Packages")]
         private static async void PullMenu()
         {
             await PullAllAsync();
         }
 
-        [MenuItem("Window/GameLib/UPM Utils/Pull Local Packages", true)]
+        [MenuItem("GameLib/UPM Utils/Pull Local Packages", true)]
         private static bool ValidatePullMenu()
         {
             return !IsRunning;
         }
 
-        [MenuItem("Window/GameLib/UPM Utils/Check Local Changes")]
+        [MenuItem("GameLib/UPM Utils/Check Local Changes")]
         private static async void CheckMenu()
         {
             await CheckAllAsync();
         }
 
-        [MenuItem("Window/GameLib/UPM Utils/Check Local Changes", true)]
+        [MenuItem("GameLib/UPM Utils/Check Local Changes", true)]
         private static bool ValidateCheckMenu()
         {
             return !IsRunning;
