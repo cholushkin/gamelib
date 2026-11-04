@@ -1,4 +1,4 @@
-// todo: expose a toolbar picker for isolation installer overrides; SceneFlowLaunchRequest already supports the list.
+// todo: none yet.
 // idea: none yet.
 using System;
 using System.Collections.Generic;
@@ -22,6 +22,8 @@ namespace GameLib.SceneFlow.Editor
         private const string PreviousStartSceneSessionKey = "GameLib.SceneFlow.PreviousStartScene";
         private const string HadPreviousStartSceneSessionKey = "GameLib.SceneFlow.HadPreviousStartScene";
         private const string SelectedProfileGuidPrefKey = "GameLib.SceneFlow.SelectedProfileGuid";
+        private const string SelectedIsolationInstallerGuidsPrefKey = "GameLib.SceneFlow.SelectedIsolationInstallerGuids";
+        private const char IsolationInstallerGuidSeparator = ';';
 
         static SceneFlowEditorLauncher()
         {
@@ -36,6 +38,12 @@ namespace GameLib.SceneFlow.Editor
 
         private static void RestorePlayModeStartScene()
         {
+            // Defensively erase any still-queued launch request even if SceneFlowBootstrap never
+            // got to consume it (e.g. Play was aborted before the host scene's Awake ran). Without
+            // this, a stale request can sit in SessionState and later fire on an unrelated, ordinary
+            // Play if the developer happens to open the Bootstrap/DevelopmentHost scene by hand.
+            SessionState.EraseString(SceneFlowLaunchRequest.SessionStateKey);
+
             if (!SessionState.GetBool(HadPreviousStartSceneSessionKey, false))
                 return;
 
@@ -63,6 +71,20 @@ namespace GameLib.SceneFlow.Editor
             set => EditorPrefs.SetString(SelectedProfileGuidPrefKey, value ?? string.Empty);
         }
 
+        // The toolbar's persisted multi-select set of SceneFlowInstaller GUIDs to use for the next
+        // Run Isolated launch. Empty means "use SceneFlowSettings.DefaultIsolationInstallers".
+        public static IReadOnlyList<string> SelectedIsolationInstallerGuids
+        {
+            get
+            {
+                var raw = EditorPrefs.GetString(SelectedIsolationInstallerGuidsPrefKey, string.Empty);
+                return string.IsNullOrEmpty(raw) ? Array.Empty<string>() : raw.Split(IsolationInstallerGuidSeparator);
+            }
+            set => EditorPrefs.SetString(SelectedIsolationInstallerGuidsPrefKey, value == null ? string.Empty : string.Join(IsolationInstallerGuidSeparator.ToString(), value));
+        }
+
+        // Never silently picks an arbitrary settings asset when more than one exists - ambiguity is
+        // reported as a hard error with every candidate path so the developer can delete the extras.
         public static SceneFlowSettings FindSettings()
         {
             var guids = AssetDatabase.FindAssets("t:SceneFlowSettings");
@@ -71,9 +93,9 @@ namespace GameLib.SceneFlow.Editor
 
             if (guids.Length > 1)
             {
-                Debug.LogWarning(
-                    "[SceneFlow] Multiple SceneFlowSettings assets found; using the first one. " +
-                    "Run 'GameLib/SceneFlow/Validate SceneFlow' to resolve this.");
+                var paths = string.Join(", ", guids.Select(AssetDatabase.GUIDToAssetPath));
+                Debug.LogError($"[SceneFlow] Multiple SceneFlowSettings assets found ({paths}); exactly one must exist. Delete the extras before launching.");
+                return null;
             }
 
             return AssetDatabase.LoadAssetAtPath<SceneFlowSettings>(AssetDatabase.GUIDToAssetPath(guids[0]));
@@ -98,7 +120,10 @@ namespace GameLib.SceneFlow.Editor
             Launch(settings.BootstrapScenePath, SceneFlowLaunchRequest.ForProfile(profileGuid));
         }
 
-        public static void RunIsolated(SceneAsset isolatedScene)
+        // explicitInstallerGuids: when non-empty, used instead of SceneFlowSettings.
+        // DefaultIsolationInstallers for this one launch (SceneFlowBootstrap.BuildIsolatedPlan
+        // resolves and validates each GUID before the host container builds).
+        public static void RunIsolated(SceneAsset isolatedScene, IReadOnlyList<string> explicitInstallerGuids = null)
         {
             if (isolatedScene == null)
             {
@@ -126,7 +151,7 @@ namespace GameLib.SceneFlow.Editor
                 return;
             }
 
-            Launch(settings.DevelopmentHostScenePath, SceneFlowLaunchRequest.ForIsolatedScene(sceneGuid, Array.Empty<string>()));
+            Launch(settings.DevelopmentHostScenePath, SceneFlowLaunchRequest.ForIsolatedScene(sceneGuid, explicitInstallerGuids ?? Array.Empty<string>()));
         }
 
         private static void Launch(string hostScenePath, SceneFlowLaunchRequest request)

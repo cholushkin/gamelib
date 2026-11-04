@@ -80,11 +80,7 @@ namespace GameLib.SceneFlow
 
         private void BuildProfilePlan(RunProfile profile)
         {
-            var overrides = (profile.ParentOverrides ?? new List<SceneParentOverride>())
-                .Where(o => o.Child != null && o.Parent != null)
-                .ToDictionary(o => o.Child, o => o.Parent);
-
-            if (!SceneOrchestrator.TryBuildPlan(profile.Scenes, overrides, profile.ActiveScene, out _plan, out _definitionsByGuid, out var errors))
+            if (!SceneOrchestrator.TryBuildPlan(profile.Scenes, profile.ParentOverrides, profile.ActiveScene, out _plan, out _definitionsByGuid, out var errors))
             {
                 Debug.LogError($"[SceneFlow] Run Profile '{profile.name}' failed validation:\n{string.Join("\n", errors)}");
                 return;
@@ -117,19 +113,37 @@ namespace GameLib.SceneFlow
                 return;
             }
 
+            // Resolve installers before building the plan: an explicit override that fails to
+            // resolve must abort the whole launch rather than silently running with fewer (or zero)
+            // service registrations than the developer asked for.
+            if (request.IsolationInstallerGuids.Count > 0)
+            {
+                var resolved = new List<SceneFlowInstaller>();
+                foreach (var guid in request.IsolationInstallerGuids)
+                {
+                    var path = AssetDatabase.GUIDToAssetPath(guid);
+                    var installer = string.IsNullOrEmpty(path) ? null : AssetDatabase.LoadAssetAtPath<SceneFlowInstaller>(path);
+                    if (installer == null)
+                    {
+                        Debug.LogError($"[SceneFlow] Isolated run requested installer '{guid}', but it could not be resolved to a SceneFlowInstaller asset. Aborting launch.");
+                        return;
+                    }
+
+                    resolved.Add(installer);
+                }
+
+                _installers = resolved;
+            }
+            else
+            {
+                _installers = Settings != null ? Settings.DefaultIsolationInstallers : new List<SceneFlowInstaller>();
+            }
+
             if (!SceneOrchestrator.TryBuildPlan(new List<SceneDefinition> { definition }, null, definition, out _plan, out _definitionsByGuid, out var errors))
             {
                 Debug.LogError($"[SceneFlow] Isolated run for '{definition.name}' failed validation:\n{string.Join("\n", errors)}");
-                return;
+                _installers = null;
             }
-
-            _installers = request.IsolationInstallerGuids
-                .Select(guid => AssetDatabase.LoadAssetAtPath<SceneFlowInstaller>(AssetDatabase.GUIDToAssetPath(guid)))
-                .Where(installer => installer != null)
-                .ToList();
-
-            if (_installers.Count == 0 && Settings != null)
-                _installers = Settings.DefaultIsolationInstallers;
         }
 
         private static SceneDefinition FindDefinitionForScene(string sceneGuid)

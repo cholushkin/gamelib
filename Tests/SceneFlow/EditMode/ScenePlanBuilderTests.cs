@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using NUnit.Framework;
 
 namespace GameLib.SceneFlow.Tests
@@ -12,15 +11,15 @@ namespace GameLib.SceneFlow.Tests
             public string DisplayName { get; }
             public IReadOnlyList<string> RequiredGuids { get; }
 
-            public FakeNode(string guid, params string[] requiredGuids)
+            public FakeNode(string guid, string displayName = null, params string[] requiredGuids)
             {
                 Guid = guid;
-                DisplayName = guid;
+                DisplayName = displayName ?? guid;
                 RequiredGuids = requiredGuids;
             }
         }
 
-        private static Dictionary<string, IScenePlanNode> Map(params FakeNode[] nodes)
+        private static Dictionary<string, IScenePlanNode> NodesOf(params FakeNode[] nodes)
         {
             var map = new Dictionary<string, IScenePlanNode>();
             foreach (var node in nodes)
@@ -29,146 +28,227 @@ namespace GameLib.SceneFlow.Tests
         }
 
         [Test]
-        public void ExpandsTransitiveDependenciesBeforeDependents()
+        public void PhysicalDependenciesAreExpandedTransitivelyAndDeduplicated()
         {
-            var nodes = Map(new FakeNode("A"), new FakeNode("B", "A"), new FakeNode("C", "B"));
+            var leaf = new FakeNode("leaf");
+            var mid = new FakeNode("mid", requiredGuids: "leaf");
+            var top = new FakeNode("top", requiredGuids: "mid");
+            var nodes = NodesOf(leaf, mid, top);
 
-            var built = ScenePlanBuilder.TryBuild(new List<string> { "C" }, nodes, null, null, out var plan, out var errors);
+            var success = ScenePlanBuilder.TryBuild(new List<string> { "top" }, nodes, null, null, out var plan, out var errors);
 
-            Assert.IsTrue(built, string.Join(", ", errors));
-            Assert.AreEqual(new List<string> { "A", "B", "C" }, plan.LoadOrder);
+            Assert.IsTrue(success, string.Join("\n", errors));
+            Assert.AreEqual(new List<string> { "leaf", "mid", "top" }, plan.LoadOrder);
         }
 
         [Test]
-        public void SharedDependencyIsLoadedOnlyOnce()
+        public void DiParentOverrideOrdersParentBeforeChildEvenWhenRequestOrderIsReversed()
         {
-            var shared = new FakeNode("Shared");
-            var nodes = Map(shared, new FakeNode("A", "Shared"), new FakeNode("B", "Shared"));
+            var parent = new FakeNode("parent");
+            var child = new FakeNode("child");
+            var nodes = NodesOf(parent, child);
 
-            var built = ScenePlanBuilder.TryBuild(new List<string> { "A", "B" }, nodes, null, null, out var plan, out var errors);
+            // Requested in child-then-parent order; only the DI override - not a physical edge -
+            // relates them. The final load order must still place the parent first.
+            var success = ScenePlanBuilder.TryBuild(
+                new List<string> { "child", "parent" },
+                nodes,
+                new List<(string ChildGuid, string ParentGuid)> { ("child", "parent") },
+                null,
+                out var plan,
+                out var errors);
 
-            Assert.IsTrue(built, string.Join(", ", errors));
-            Assert.AreEqual(1, plan.LoadOrder.Count(g => g == "Shared"));
-            Assert.AreEqual("Shared", plan.LoadOrder[0]);
+            Assert.IsTrue(success, string.Join("\n", errors));
+            Assert.AreEqual(new List<string> { "parent", "child" }, plan.LoadOrder);
+            Assert.AreEqual("parent", plan.ParentGuidByGuid["child"]);
         }
 
         [Test]
-        public void DetectsDirectCycle()
+        public void CombinedPhysicalAndDiCycleIsRejectedWithAUsefulChain()
         {
-            var nodes = Map(new FakeNode("A", "B"), new FakeNode("B", "A"));
+            // A requires B physically; B has A as its DI parent - a cycle that spans both edge
+            // types and is invisible if either graph is checked in isolation.
+            var a = new FakeNode("a", requiredGuids: "b");
+            var b = new FakeNode("b");
+            var nodes = NodesOf(a, b);
 
-            var built = ScenePlanBuilder.TryBuild(new List<string> { "A" }, nodes, null, null, out _, out var errors);
+            var success = ScenePlanBuilder.TryBuild(
+                new List<string> { "a", "b" },
+                nodes,
+                new List<(string ChildGuid, string ParentGuid)> { ("b", "a") },
+                null,
+                out _,
+                out var errors);
 
-            Assert.IsFalse(built);
-            Assert.IsTrue(errors.Exists(e => e.Contains("cycle")));
+            Assert.IsFalse(success);
+            Assert.IsTrue(errors.Exists(e => e.Contains("cycle") && e.Contains("requires") && e.Contains("DI parent")));
         }
 
         [Test]
-        public void DetectsSelfReference()
+        public void MissingDiParentReturnsValidationError()
         {
-            var nodes = Map(new FakeNode("A", "A"));
+            var child = new FakeNode("child");
+            var nodes = NodesOf(child);
 
-            var built = ScenePlanBuilder.TryBuild(new List<string> { "A" }, nodes, null, null, out _, out var errors);
+            var success = ScenePlanBuilder.TryBuild(
+                new List<string> { "child" },
+                nodes,
+                new List<(string ChildGuid, string ParentGuid)> { ("child", "ghost-parent") },
+                null,
+                out _,
+                out var errors);
 
-            Assert.IsFalse(built);
-            Assert.IsTrue(errors.Exists(e => e.Contains("itself")));
+            Assert.IsFalse(success);
+            Assert.IsTrue(errors.Exists(e => e.Contains("not part of the resolved scene plan")));
         }
 
         [Test]
-        public void DetectsDuplicateRequest()
+        public void SelfParentReturnsValidationError()
         {
-            var nodes = Map(new FakeNode("A"));
+            var a = new FakeNode("a");
+            var nodes = NodesOf(a);
 
-            var built = ScenePlanBuilder.TryBuild(new List<string> { "A", "A" }, nodes, null, null, out _, out var errors);
+            var success = ScenePlanBuilder.TryBuild(
+                new List<string> { "a" },
+                nodes,
+                new List<(string ChildGuid, string ParentGuid)> { ("a", "a") },
+                null,
+                out _,
+                out var errors);
 
-            Assert.IsFalse(built);
-            Assert.IsTrue(errors.Exists(e => e.Contains("more than once")));
+            Assert.IsFalse(success);
+            Assert.IsTrue(errors.Exists(e => e.Contains("cannot be its own DI parent")));
         }
 
         [Test]
-        public void RejectsMissingDependency()
+        public void DuplicateParentOverrideForSameChildReturnsValidationErrorInsteadOfThrowing()
         {
-            var nodes = Map(new FakeNode("A", "Ghost"));
+            var a = new FakeNode("a");
+            var b = new FakeNode("b");
+            var child = new FakeNode("child");
+            var nodes = NodesOf(a, b, child);
 
-            var built = ScenePlanBuilder.TryBuild(new List<string> { "A" }, nodes, null, null, out _, out var errors);
+            Assert.DoesNotThrow(() =>
+            {
+                var success = ScenePlanBuilder.TryBuild(
+                    new List<string> { "a", "b", "child" },
+                    nodes,
+                    new List<(string ChildGuid, string ParentGuid)> { ("child", "a"), ("child", "b") },
+                    null,
+                    out _,
+                    out var errors);
 
-            Assert.IsFalse(built);
+                Assert.IsFalse(success);
+                Assert.IsTrue(errors.Exists(e => e.Contains("more than one DI parent override")));
+            });
         }
 
         [Test]
-        public void RejectsUnknownRequestedScene()
+        public void InvalidActiveSceneReturnsValidationError()
         {
-            var nodes = Map(new FakeNode("A"));
+            var a = new FakeNode("a");
+            var nodes = NodesOf(a);
 
-            var built = ScenePlanBuilder.TryBuild(new List<string> { "Unknown" }, nodes, null, null, out _, out var errors);
+            var success = ScenePlanBuilder.TryBuild(new List<string> { "a" }, nodes, null, "not-in-plan", out _, out var errors);
 
-            Assert.IsFalse(built);
+            Assert.IsFalse(success);
+            Assert.IsTrue(errors.Exists(e => e.Contains("ActiveScene")));
         }
 
         [Test]
-        public void DefaultsActiveSceneToLastRequested()
+        public void SelfRequiredSceneReturnsValidationErrorInsteadOfInfiniteRecursion()
         {
-            var nodes = Map(new FakeNode("A"), new FakeNode("B"));
+            var a = new FakeNode("a", requiredGuids: "a");
+            var nodes = NodesOf(a);
 
-            var built = ScenePlanBuilder.TryBuild(new List<string> { "A", "B" }, nodes, null, null, out var plan, out var errors);
+            Assert.DoesNotThrow(() =>
+            {
+                var success = ScenePlanBuilder.TryBuild(new List<string> { "a" }, nodes, null, null, out _, out var errors);
 
-            Assert.IsTrue(built, string.Join(", ", errors));
-            Assert.AreEqual("B", plan.ActiveSceneGuid);
+                Assert.IsFalse(success);
+                Assert.IsTrue(errors.Exists(e => e.Contains("lists itself as a required scene")));
+            });
         }
 
         [Test]
-        public void RejectsActiveSceneNotInPlan()
+        public void NullParentOverridesListDoesNotThrow()
         {
-            var nodes = Map(new FakeNode("A"));
+            var a = new FakeNode("a");
+            var nodes = NodesOf(a);
 
-            var built = ScenePlanBuilder.TryBuild(new List<string> { "A" }, nodes, null, "Missing", out _, out var errors);
-
-            Assert.IsFalse(built);
+            Assert.DoesNotThrow(() =>
+            {
+                var success = ScenePlanBuilder.TryBuild(new List<string> { "a" }, nodes, null, null, out _, out var errors);
+                Assert.IsTrue(success, string.Join("\n", errors));
+            });
         }
 
         [Test]
-        public void ValidatesParentOverride()
+        public void UnknownRequestedGuidReturnsValidationErrorInsteadOfThrowing()
         {
-            var nodes = Map(new FakeNode("A"), new FakeNode("B"));
-            var overrides = new Dictionary<string, string> { { "B", "A" } };
+            var nodes = NodesOf();
 
-            var built = ScenePlanBuilder.TryBuild(new List<string> { "A", "B" }, nodes, overrides, null, out var plan, out var errors);
+            Assert.DoesNotThrow(() =>
+            {
+                var success = ScenePlanBuilder.TryBuild(new List<string> { "missing" }, nodes, null, null, out _, out var errors);
 
-            Assert.IsTrue(built, string.Join(", ", errors));
-            Assert.AreEqual("A", plan.ParentGuidByGuid["B"]);
+                Assert.IsFalse(success);
+                Assert.IsTrue(errors.Exists(e => e.Contains("has no known SceneDefinition")));
+            });
         }
 
         [Test]
-        public void RejectsParentOverrideOutsidePlan()
+        public void DuplicateRequestedSceneReturnsValidationError()
         {
-            var nodes = Map(new FakeNode("A"));
-            var overrides = new Dictionary<string, string> { { "A", "NotInPlan" } };
+            var a = new FakeNode("a");
+            var nodes = NodesOf(a);
 
-            var built = ScenePlanBuilder.TryBuild(new List<string> { "A" }, nodes, overrides, null, out _, out var errors);
+            var success = ScenePlanBuilder.TryBuild(new List<string> { "a", "a" }, nodes, null, null, out _, out var errors);
 
-            Assert.IsFalse(built);
+            Assert.IsFalse(success);
+            Assert.IsTrue(errors.Exists(e => e.Contains("requested more than once")));
         }
 
         [Test]
-        public void RejectsParentOverrideSelfReference()
+        public void DiParentOverrideCannotPullInASceneNotReachedPhysically()
         {
-            var nodes = Map(new FakeNode("A"));
-            var overrides = new Dictionary<string, string> { { "A", "A" } };
+            // "parent" is a valid scene asset, but it's not requested and nothing requires it - an
+            // override referencing it must not silently add it to the plan.
+            var parent = new FakeNode("parent");
+            var child = new FakeNode("child");
+            var nodes = NodesOf(parent, child);
 
-            var built = ScenePlanBuilder.TryBuild(new List<string> { "A" }, nodes, overrides, null, out _, out var errors);
+            var success = ScenePlanBuilder.TryBuild(
+                new List<string> { "child" },
+                nodes,
+                new List<(string ChildGuid, string ParentGuid)> { ("child", "parent") },
+                null,
+                out _,
+                out var errors);
 
-            Assert.IsFalse(built);
+            Assert.IsFalse(success);
+            Assert.IsTrue(errors.Exists(e => e.Contains("points to") && e.Contains("not part of the resolved scene plan")));
         }
 
         [Test]
-        public void RejectsParentOverrideCycle()
+        public void TransitivePhysicalDependencyCanBeUsedAsDiParent()
         {
-            var nodes = Map(new FakeNode("A"), new FakeNode("B"));
-            var overrides = new Dictionary<string, string> { { "A", "B" }, { "B", "A" } };
+            // "leaf" is only pulled in transitively (via "mid"'s RequiredScenes), never requested
+            // directly, but it must still be a valid explicit DI parent.
+            var leaf = new FakeNode("leaf");
+            var mid = new FakeNode("mid", requiredGuids: "leaf");
+            var nodes = NodesOf(leaf, mid);
 
-            var built = ScenePlanBuilder.TryBuild(new List<string> { "A", "B" }, nodes, overrides, null, out _, out var errors);
+            var success = ScenePlanBuilder.TryBuild(
+                new List<string> { "mid" },
+                nodes,
+                new List<(string ChildGuid, string ParentGuid)> { ("mid", "leaf") },
+                null,
+                out var plan,
+                out var errors);
 
-            Assert.IsFalse(built);
+            Assert.IsTrue(success, string.Join("\n", errors));
+            Assert.AreEqual(new List<string> { "leaf", "mid" }, plan.LoadOrder);
         }
     }
 }

@@ -11,9 +11,11 @@ using UnityEngine.SceneManagement;
 namespace GameLib.SceneFlow.Editor
 {
     // The generic SceneFlow toolbar: a Run Profile dropdown populated from whatever RunProfile
-    // assets exist in the project (no hardcoded names or profile-specific branches), plus the two
+    // assets exist in the project (no hardcoded names or profile-specific branches), plus the
     // developer actions - Run Profile and Run Isolated - that both delegate to the same runtime
-    // SceneOrchestrator through SceneFlowEditorLauncher.
+    // SceneOrchestrator through SceneFlowEditorLauncher. The Isolation Installers dropdown lets a
+    // developer pick an explicit set of SceneFlowInstaller assets for the next Run Isolated launch
+    // instead of always using SceneFlowSettings.DefaultIsolationInstallers.
     public static class SceneFlowToolbar
     {
         private const string ToolbarPath = "GameLib/SceneFlow";
@@ -29,6 +31,10 @@ namespace GameLib.SceneFlow.Editor
             yield return new MainToolbarButton(
                 new MainToolbarContent("▶ Profile", "Run the selected RunProfile from the configured Bootstrap scene"),
                 RunSelectedProfile);
+
+            yield return new MainToolbarDropdown(
+                new MainToolbarContent(GetIsolationInstallersLabel(), "Choose SceneFlowInstaller assets for Run Isolated (empty = use DefaultIsolationInstallers)"),
+                ShowIsolationInstallersDropdown);
 
             yield return new MainToolbarButton(
                 new MainToolbarContent("▶ Isolated", "Run the selected/open scene under the Development Host with isolated services"),
@@ -87,9 +93,56 @@ namespace GameLib.SceneFlow.Editor
             SceneFlowEditorLauncher.RunProfile(profile);
         }
 
+        private static void ShowIsolationInstallersDropdown(Rect dropdownRect)
+        {
+            var installerGuids = AssetDatabase.FindAssets("t:SceneFlowInstaller");
+            var selected = new HashSet<string>(SceneFlowEditorLauncher.SelectedIsolationInstallerGuids);
+            var menu = new GenericMenu();
+
+            if (installerGuids.Length == 0)
+                menu.AddDisabledItem(new GUIContent("No SceneFlowInstaller assets found"));
+
+            foreach (var guid in installerGuids)
+            {
+                var path = AssetDatabase.GUIDToAssetPath(guid);
+                var name = Path.GetFileNameWithoutExtension(path);
+
+                menu.AddItem(
+                    new GUIContent(name),
+                    selected.Contains(guid),
+                    () =>
+                    {
+                        var current = new HashSet<string>(SceneFlowEditorLauncher.SelectedIsolationInstallerGuids);
+                        if (!current.Remove(guid))
+                            current.Add(guid);
+
+                        SceneFlowEditorLauncher.SelectedIsolationInstallerGuids = current.ToList();
+                        MainToolbar.Refresh(ToolbarPath);
+                    });
+            }
+
+            if (installerGuids.Length > 0)
+            {
+                menu.AddSeparator(string.Empty);
+                menu.AddItem(new GUIContent("Clear Selection (use Default Isolation Installers)"), selected.Count == 0, () =>
+                {
+                    SceneFlowEditorLauncher.SelectedIsolationInstallerGuids = System.Array.Empty<string>();
+                    MainToolbar.Refresh(ToolbarPath);
+                });
+            }
+
+            menu.DropDown(dropdownRect);
+        }
+
+        private static string GetIsolationInstallersLabel()
+        {
+            var count = SceneFlowEditorLauncher.SelectedIsolationInstallerGuids.Count;
+            return count == 0 ? "[Default Installers]" : $"[{count} Installer(s)]";
+        }
+
         private static void RunIsolatedScene()
         {
-            SceneFlowEditorLauncher.RunIsolated(GetSelectedOrActiveSceneAsset());
+            SceneFlowEditorLauncher.RunIsolated(GetSelectedOrActiveSceneAsset(), SceneFlowEditorLauncher.SelectedIsolationInstallerGuids);
         }
 
         private static SceneAsset GetSelectedOrActiveSceneAsset()

@@ -29,6 +29,10 @@ namespace GameLib.SceneFlow.Editor
             var warnings = new List<string>();
             warnings.AddRange(CollectDefinitionWarnings(definitions));
             ValidateSettings(errors, warnings);
+            warnings.Add(
+                "Scene-level LifetimeScope cardinality (zero/one/multiple independent roots) cannot be " +
+                "inspected without opening every scene, which this validator deliberately does not do. " +
+                "A scene with multiple independent root LifetimeScopes is only caught when it actually loads.");
 
             foreach (var warning in warnings)
                 Debug.LogWarning($"[SceneFlow Validate] {warning}");
@@ -113,6 +117,11 @@ namespace GameLib.SceneFlow.Editor
             return warnings;
         }
 
+        // Cheap shape checks first (clear, profile-specific messages), then - unless the shape is
+        // too broken to even attempt it - defers to the exact same planner the runtime launch path
+        // uses for everything that requires walking the dependency graph: physical cycles, DI-parent
+        // cycles, combined cycles, and transitive-prerequisite validity. This is what keeps Editor
+        // validation from ever disagreeing with what a real launch will do.
         internal static List<string> ValidateProfile(RunProfile profile)
         {
             var errors = new List<string>();
@@ -139,7 +148,16 @@ namespace GameLib.SceneFlow.Editor
                     errors.Add($"RunProfile '{profile.name}' parent override parent '{o.Parent.name}' is not part of Scenes.");
             }
 
-            return errors;
+            if (scenes.Count == 0 || scenes.Any(s => s == null))
+                return errors.Distinct().ToList();
+
+            if (!SceneOrchestrator.TryBuildPlan(scenes, profile.ParentOverrides, profile.ActiveScene, out _, out _, out var planErrors))
+            {
+                foreach (var planError in planErrors)
+                    errors.Add($"RunProfile '{profile.name}': {planError}");
+            }
+
+            return errors.Distinct().ToList();
         }
 
         private static void ValidateSettings(List<string> errors, List<string> warnings)

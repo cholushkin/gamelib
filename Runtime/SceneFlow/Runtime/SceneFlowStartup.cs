@@ -3,6 +3,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using UnityEngine;
 using VContainer.Unity;
 
 namespace GameLib.SceneFlow
@@ -28,7 +29,12 @@ namespace GameLib.SceneFlow
 
         public async UniTask StartAsync(CancellationToken cancellation = default)
         {
-            await _orchestrator.ExecutePlanAsync(_plan, _definitionsByGuid, ct: cancellation);
+            // SceneOrchestrator already logs/emits every failure through OnLoadFailed, but this is
+            // the one place a startup result can otherwise be discarded entirely if nobody has
+            // subscribed yet - fail loudly here too so a broken launch is never silent.
+            var result = await _orchestrator.ExecutePlanAsync(_plan, _definitionsByGuid, ct: cancellation);
+            if (!result.Success)
+                Debug.LogError($"[SceneFlow] Startup did not complete successfully (context: {result.Context}): {result.ErrorMessage}");
         }
     }
 }
