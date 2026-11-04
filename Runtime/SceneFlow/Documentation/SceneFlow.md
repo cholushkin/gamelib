@@ -200,6 +200,37 @@ scene assets and an Addressables group that don't exist in this repo yet. To ver
     Play loads your normally open scene, not the SceneFlow host - including after a Play session that
     was aborted before entering Play (e.g. via a compile error) with domain reload disabled.
 
+## Future use cases and examples
+
+SceneFlow's three separated concerns (`SceneDefinition` dependencies, `RunProfile` composition,
+toolbar launch) cover more than "load the production scene stack." These are patterns the existing
+mechanics already support without new machinery — consuming projects can wire them up as needed.
+
+- **Isolated content/UI iteration.** Give a scene its own small `SceneFlowInstaller` that registers
+  fixtures/fakes instead of real services, assign a `DevelopmentHostScene`, and use **▶ Isolated** to
+  open that one scene directly — no need to boot the rest of the game to iterate on it. Swap which
+  installer runs from the toolbar's Isolation Installers dropdown without touching any asset the
+  production profile uses.
+- **On-demand additive content.** A scene that should only exist while a specific activity is active
+  (an instanced level, a minigame, a cutscene) can be its own `SceneDefinition` with `RequiredScenes`
+  pointing at whatever persistent scene it needs, loaded additively when the activity starts and
+  unloaded when it ends via `SceneOrchestrator`. The dependency-checked unload path refuses to tear
+  down a scene other loaded scenes still require, so this composes safely alongside whatever else is
+  running.
+- **Multiple composition variants of the same scenes.** Several `RunProfile` assets can request the
+  same `SceneDefinition`s while differing only in `Installers` or `ParentOverrides` — e.g. a
+  QA/debug profile that adds one extra debug-overlay scene, or a platform-variant profile that swaps
+  one `SceneFlowInstaller` for another. Selecting between them from the toolbar dropdown requires no
+  code change.
+- **Persistent-service scenes with a dependent "session" scene.** A long-lived scene (e.g. holding
+  network/session-lobby state) can be an explicit `ParentOverrides` target for a scene that should
+  resolve from it rather than from the execution host — useful whenever a dependent scene's DI scope
+  should come from another *already-loaded* scene instead of the bootstrap/host scope.
+- **Headless/CI smoke testing.** Because `SceneOrchestrator.TryBuildPlan` and the Editor validator
+  share the same planning code, a batch-mode job can validate that every `RunProfile` in the project
+  still resolves to a loadable plan (no cycles, no missing override targets) as a fast pre-merge
+  check, independent of actually entering Play.
+
 ## Deliberate departures from the original module spec
 
 - `SceneFlowSettings`'s `SceneAsset` ↔ path sync is implemented as an `OnValidate` on the settings
