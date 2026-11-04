@@ -20,6 +20,9 @@ namespace GameLib.Editor
         private static readonly Color ChangedColor =
             new Color(0.75f, 0.20f, 0.20f);
 
+        private static readonly Color BehindColor =
+            new Color(0.60f, 0.42f, 0.08f);
+
         private static readonly Color NeutralColor =
             new Color(0.40f, 0.40f, 0.40f);
 
@@ -108,7 +111,7 @@ namespace GameLib.Editor
                     }
 
                     if (GUILayout.Button(
-                        "Check Local Changes",
+                        "Status Check",
                         GUILayout.Height(30)))
                     {
                         CheckAll();
@@ -249,17 +252,35 @@ namespace GameLib.Editor
                 hasChanges = true;
             }
 
-            if (status.HasUnpushedChanges)
+            if (status.IsDiverged)
             {
-                DrawTag("Not pushed changes", ChangedColor);
+                DrawTag("Diverged", ChangedColor);
                 hasChanges = true;
+            }
+            else
+            {
+                if (status.HasUnpushedChanges)
+                {
+                    DrawTag("Not pushed changes", ChangedColor);
+                    hasChanges = true;
+                }
+
+                if (status.HasUnpulledChanges)
+                {
+                    DrawTag("Not pulled changes", BehindColor);
+                    hasChanges = true;
+                }
             }
 
             if (!status.HasUpstream)
             {
                 DrawTag("No upstream", NeutralColor);
             }
-            else if (!hasChanges)
+            else if (!string.IsNullOrEmpty(status.RemoteCheckError))
+            {
+                DrawTag("Fetch failed", NeutralColor);
+            }
+            else if (!hasChanges && status.IsClean)
             {
                 DrawTag("No changes", CleanColor);
             }

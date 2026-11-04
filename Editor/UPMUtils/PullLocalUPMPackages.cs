@@ -30,20 +30,34 @@ namespace GameLib.Editor
             public bool IsStandaloneRepository { get; internal set; }
             public bool HasUncommittedChanges { get; internal set; }
             public bool HasUpstream { get; internal set; }
+            public bool HasFreshRemoteStatus { get; internal set; }
             public int UnpushedCommitCount { get; internal set; }
+            public int UnpulledCommitCount { get; internal set; }
             public string Upstream { get; internal set; }
             public string ChangedFiles { get; internal set; }
+            public string RemoteCheckError { get; internal set; }
             public string Note { get; internal set; }
             public string Error { get; internal set; }
 
             public bool HasUnpushedChanges =>
                 UnpushedCommitCount > 0;
 
+            public bool HasUnpulledChanges =>
+                UnpulledCommitCount > 0;
+
+            public bool IsDiverged =>
+                HasFreshRemoteStatus &&
+                HasUnpushedChanges &&
+                HasUnpulledChanges;
+
             public bool IsClean =>
                 IsStandaloneRepository &&
                 HasUpstream &&
+                HasFreshRemoteStatus &&
                 !HasUncommittedChanges &&
                 !HasUnpushedChanges &&
+                !HasUnpulledChanges &&
+                string.IsNullOrEmpty(RemoteCheckError) &&
                 string.IsNullOrEmpty(Error);
         }
 
@@ -85,13 +99,13 @@ namespace GameLib.Editor
             return !IsRunning;
         }
 
-        [MenuItem("GameLib/UPM Utils/Check Local Changes")]
+        [MenuItem("GameLib/UPM Utils/Status Check")]
         private static async void CheckMenu()
         {
             await CheckAllAsync();
         }
 
-        [MenuItem("GameLib/UPM Utils/Check Local Changes", true)]
+        [MenuItem("GameLib/UPM Utils/Status Check", true)]
         private static bool ValidateCheckMenu()
         {
             return !IsRunning;
@@ -202,6 +216,8 @@ namespace GameLib.Editor
             int clean = 0;
             int uncommitted = 0;
             int unpushed = 0;
+            int unpulled = 0;
+            int diverged = 0;
             int other = 0;
 
             try
@@ -224,9 +240,16 @@ namespace GameLib.Editor
                     if (status.HasUnpushedChanges)
                         unpushed++;
 
-                    if (!status.IsClean &&
-                        !status.HasUncommittedChanges &&
-                        !status.HasUnpushedChanges)
+                    if (status.HasUnpulledChanges)
+                        unpulled++;
+
+                    if (status.IsDiverged)
+                        diverged++;
+
+                    if (!status.IsStandaloneRepository ||
+                        !status.HasUpstream ||
+                        !status.HasFreshRemoteStatus ||
+                        !string.IsNullOrEmpty(status.Error))
                         other++;
                 }
             }
@@ -243,6 +266,8 @@ namespace GameLib.Editor
                     $"Clean: {clean}\n" +
                     $"With uncommitted changes: {uncommitted}\n" +
                     $"With unpushed commits: {unpushed}\n" +
+                    $"With unpulled commits: {unpulled}\n" +
+                    $"Diverged: {diverged}\n" +
                     $"Other / unknown: {other}");
             }
         }
@@ -537,24 +562,55 @@ namespace GameLib.Editor
                 status.HasUpstream = true;
                 status.Upstream = upstream.StdOut.Trim();
 
-                // Commits in HEAD that are not in the upstream ref.
-                var ahead = await RunGitAsync(
-                    path, "rev-list --count @{upstream}..HEAD");
+                // Refresh upstream tracking references without changing
+                // the working tree, index or current branch.
+                var fetch = await RunGitAsync(path, "fetch --no-tags");
 
-                if (ahead.ExitCode != 0 ||
-                    !int.TryParse(
-                        ahead.StdOut.Trim(),
-                        NumberStyles.Integer,
-                        CultureInfo.InvariantCulture,
-                        out int count))
+                if (fetch.ExitCode != 0)
                 {
-                    status.Error =
-                        "Could not determine unpushed commits.\n" +
-                        ahead.Output;
+                    status.RemoteCheckError = fetch.Output;
+                    status.Note = "Fetch failed; remote status is unknown.";
                     return status;
                 }
 
-                status.UnpushedCommitCount = count;
+                // Left = commits ahead of upstream (not pushed).
+                // Right = commits behind upstream (not pulled).
+                var comparison = await RunGitAsync(
+                    path, "rev-list --left-right --count HEAD...@{upstream}");
+
+                if (comparison.ExitCode != 0)
+                {
+                    status.Error =
+                        "Could not compare local and upstream commits.\n" +
+                        comparison.Output;
+                    return status;
+                }
+
+                string[] counts = comparison.StdOut.Split(
+                    new[] { ' ', '\t', '\r', '\n' },
+                    StringSplitOptions.RemoveEmptyEntries);
+
+                if (counts.Length != 2 ||
+                    !int.TryParse(
+                        counts[0],
+                        NumberStyles.Integer,
+                        CultureInfo.InvariantCulture,
+                        out int aheadCount) ||
+                    !int.TryParse(
+                        counts[1],
+                        NumberStyles.Integer,
+                        CultureInfo.InvariantCulture,
+                        out int behindCount))
+                {
+                    status.Error =
+                        "Unexpected result when comparing commits: " +
+                        comparison.Output;
+                    return status;
+                }
+
+                status.UnpushedCommitCount = aheadCount;
+                status.UnpulledCommitCount = behindCount;
+                status.HasFreshRemoteStatus = true;
             }
             catch (Exception e)
             {
@@ -592,14 +648,36 @@ namespace GameLib.Editor
                 message.AppendLine(status.ChangedFiles);
             }
 
-            if (status.HasUnpushedChanges)
+            if (status.IsDiverged)
             {
                 message.AppendLine(
-                    $"NOT PUSHED: {status.UnpushedCommitCount} " +
-                    $"commit(s) ahead of {status.Upstream}");
+                    $"DIVERGED: {status.UnpushedCommitCount} commit(s) " +
+                    $"ahead and {status.UnpulledCommitCount} commit(s) " +
+                    $"behind {status.Upstream}");
+            }
+            else
+            {
+                if (status.HasUnpushedChanges)
+                {
+                    message.AppendLine(
+                        $"NOT PUSHED: {status.UnpushedCommitCount} " +
+                        $"commit(s) ahead of {status.Upstream}");
+                }
+
+                if (status.HasUnpulledChanges)
+                {
+                    message.AppendLine(
+                        $"NOT PULLED: {status.UnpulledCommitCount} " +
+                        $"commit(s) behind {status.Upstream}");
+                }
             }
 
-            if (!status.HasUpstream)
+            if (!string.IsNullOrEmpty(status.RemoteCheckError))
+            {
+                message.AppendLine("FETCH FAILED; remote status unknown:");
+                message.AppendLine(status.RemoteCheckError);
+            }
+            else if (!status.HasUpstream)
             {
                 message.AppendLine(status.Note);
             }
