@@ -1,0 +1,28 @@
+{
+    "name": "GameLib.SceneFlow.Tests",
+    "rootNamespace": "GameLib.SceneFlow.Tests",
+    "references": [
+        "GameLib.SceneFlow",
+        "GameLib.SceneFlow.Editor",
+        "VContainer",
+        "Unity.Addressables",
+        "Unity.ResourceManager",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
