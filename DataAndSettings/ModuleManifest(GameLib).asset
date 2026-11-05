@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: GameLib::GameLib.GameLibModuleManifest
   Name: GameLib
   Version: 1.0.0.a
-  Icon: {fileID: 21300000, guid: 9b3e6f9d7cd4fa34e9d3982797347041, type: 3}
+  Icon: {fileID: 21300000, guid: 856b5e9d53c2fd649ba913bf2c566e5f, type: 3}
   Description: GameLib is a modular Unity game framework that provides reusable systems
     and utilities for building games faster, including architecture, dependency injection,
     state management, event handling, asynchronous workflows, and common gameplay
