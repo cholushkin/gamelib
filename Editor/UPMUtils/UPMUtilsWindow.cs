@@ -12,19 +12,31 @@ namespace GameLib.Editor
 {
     public class UPMUtilsWindow : EditorWindow
     {
+        private const float StatusCellWidth = 128f;
+        private const float StatusGridWidth = StatusCellWidth * 2f;
+        private const float IconColumnWidth = 72f;
+
         private Vector2 _scrollPosition;
 
-        private static readonly Color CleanColor =
-            new Color(0.15f, 0.55f, 0.25f);
+        private static readonly Color LocalSourceColor =
+            new Color(0.20f, 0.40f, 0.70f);
 
-        private static readonly Color ChangedColor =
-            new Color(0.75f, 0.20f, 0.20f);
+        private static readonly Color GitSourceColor =
+            new Color(0.55f, 0.30f, 0.65f);
 
-        private static readonly Color BehindColor =
-            new Color(0.60f, 0.42f, 0.08f);
+        private static readonly Color StatusInactiveColor =
+            new Color(0.5f, 0.5f, 0.5f);
 
-        private static readonly Color NeutralColor =
-            new Color(0.40f, 0.40f, 0.40f);
+        private static readonly Color StatusGoodColor =
+            new Color(0.25f, 0.70f, 0.30f);
+
+        private static readonly Color StatusBadColor =
+            new Color(0.80f, 0.25f, 0.25f);
+
+        private static GUIStyle _richMiniLabelStyle;
+        private static GUIStyle _statusGreyStyle;
+        private static GUIStyle _statusGoodStyle;
+        private static GUIStyle _statusBadStyle;
 
         [MenuItem("GameLib/UPM Utils/UPM Utils")]
         public static void Open()
@@ -50,8 +62,13 @@ namespace GameLib.Editor
 
         private void CheckOnOpen()
         {
-            if (!this ||
-                PullLocalUPMPackages.IsRunning ||
+            if (!this)
+                return;
+
+            if (!GameLibModuleScanner.HasScanned)
+                GameLibModuleScanner.Scan();
+
+            if (PullLocalUPMPackages.IsRunning ||
                 PullLocalUPMPackages.HasCachedStatuses)
                 return;
 
@@ -96,12 +113,12 @@ namespace GameLib.Editor
         private void DrawPackagesSection()
         {
             EditorGUILayout.LabelField(
-                "Local UPM Packages", EditorStyles.boldLabel);
+                "GameLib Modules (UPM)", EditorStyles.boldLabel);
 
-            using (new EditorGUILayout.HorizontalScope())
+            using (new EditorGUI.DisabledScope(
+                PullLocalUPMPackages.IsRunning))
             {
-                using (new EditorGUI.DisabledScope(
-                    PullLocalUPMPackages.IsRunning))
+                using (new EditorGUILayout.HorizontalScope())
                 {
                     if (GUILayout.Button(
                         "Pull All from Git",
@@ -129,62 +146,92 @@ namespace GameLib.Editor
 
             EditorGUILayout.Space(6);
 
-            var packages = PackageInfo.GetAllRegisteredPackages();
-
             _scrollPosition = EditorGUILayout.BeginScrollView(
                 _scrollPosition);
 
             int count = 0;
 
-            foreach (var package in packages)
+            foreach (var module in GameLibModuleScanner.Modules)
             {
-                if (package.source != PackageSource.Local &&
-                    package.source != PackageSource.Embedded)
-                    continue;
-
                 count++;
-                DrawPackage(package);
+                DrawPackage(module);
             }
 
             if (count == 0)
             {
                 EditorGUILayout.HelpBox(
-                    "No local or embedded UPM packages found.",
+                    GameLibModuleScanner.HasScanned
+                        ? "No GameLib modules found among local or " +
+                          "Git-installed UPM packages."
+                        : "Scanning packages for GameLib module " +
+                          "manifests...",
                     MessageType.Info);
             }
 
             EditorGUILayout.EndScrollView();
         }
 
-        private void DrawPackage(PackageInfo package)
+        private void DrawPackage(GameLibModuleScanner.ModuleInfo module)
         {
+            var package = module.Package;
+
+            bool isLocal =
+                package.source == PackageSource.Local ||
+                package.source == PackageSource.Embedded;
+
             using (new EditorGUILayout.VerticalScope(
                 EditorStyles.helpBox))
             {
                 using (new EditorGUILayout.HorizontalScope())
                 {
-                    EditorGUILayout.LabelField(
-                        package.name,
-                        EditorStyles.boldLabel,
-                        GUILayout.ExpandWidth(false));
+                    using (new EditorGUILayout.VerticalScope())
+                    {
+                        DrawPackageInfo(module, isLocal);
+                    }
 
-                    GUILayout.FlexibleSpace();
+                    using (new EditorGUILayout.VerticalScope(
+                        GUILayout.Width(StatusGridWidth)))
+                    {
+                        DrawStatusGrid(package, isLocal);
+                    }
 
-                    DrawPackageStatus(package);
+                    DrawManifestIconColumn(module);
                 }
+            }
+        }
 
-                EditorGUILayout.LabelField(
-                    $"Version: {package.version}  |  " +
-                    $"Source: {package.source}",
-                    EditorStyles.miniLabel);
+        // Exactly four lines: name, version/source, path, buttons. Kept in
+        // lockstep with the four-row status grid and the full-height icon
+        // next to it so every column in the row lines up.
+        private void DrawPackageInfo(
+            GameLibModuleScanner.ModuleInfo module,
+            bool isLocal)
+        {
+            var package = module.Package;
 
-                EditorGUILayout.SelectableLabel(
-                    package.resolvedPath,
-                    EditorStyles.miniLabel,
-                    GUILayout.Height(
-                        EditorGUIUtility.singleLineHeight));
+            EditorGUILayout.LabelField(
+                package.name, EditorStyles.boldLabel);
 
-                using (new EditorGUILayout.HorizontalScope())
+            DrawVersionSourceLine(package, isLocal);
+
+            EditorGUILayout.SelectableLabel(
+                package.resolvedPath,
+                EditorStyles.miniLabel,
+                GUILayout.Height(
+                    EditorGUIUtility.singleLineHeight));
+
+            if (module.HasMultipleManifests)
+            {
+                EditorGUILayout.HelpBox(
+                    $"Multiple module manifests found in this " +
+                    $"package ({module.ManifestAssetPaths.Length}). " +
+                    "Using the first one found.",
+                    MessageType.Warning);
+            }
+
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                if (isLocal)
                 {
                     using (new EditorGUI.DisabledScope(
                         PullLocalUPMPackages.IsRunning))
@@ -201,111 +248,244 @@ namespace GameLib.Editor
                             CheckPackage(package);
                         }
                     }
+                }
 
-                    if (GUILayout.Button(
-                        "Open Folder", GUILayout.Width(100)))
-                    {
-                        EditorUtility.RevealInFinder(
-                            package.resolvedPath);
-                    }
+                if (GUILayout.Button(
+                    "Open Folder", GUILayout.Width(100)))
+                {
+                    EditorUtility.RevealInFinder(
+                        package.resolvedPath);
+                }
 
-                    if (GUILayout.Button(
-                        "Copy Path", GUILayout.Width(90)))
-                    {
-                        EditorGUIUtility.systemCopyBuffer =
-                            package.resolvedPath;
-                    }
+                if (GUILayout.Button(
+                    "Copy Path", GUILayout.Width(90)))
+                {
+                    EditorGUIUtility.systemCopyBuffer =
+                        package.resolvedPath;
                 }
             }
         }
 
-        private static void DrawPackageStatus(PackageInfo package)
+        private static void DrawVersionSourceLine(
+            PackageInfo package, bool isLocal)
         {
-            if (!PullLocalUPMPackages.TryGetStatus(
-                    package, out var status))
+            Color sourceColor = GetSourceColor(package.source);
+            string hex = ColorUtility.ToHtmlStringRGB(sourceColor);
+
+            string line =
+                $"Version: {package.version}  |  Source: " +
+                $"<color=#{hex}><b>{package.source}</b></color>";
+
+            if (!isLocal &&
+                package.git != null &&
+                !string.IsNullOrEmpty(package.git.hash))
             {
-                DrawTag(
-                    PullLocalUPMPackages.IsRunning
-                        ? "Checking..."
-                        : "Not checked",
-                    NeutralColor);
-                return;
+                string shortHash = package.git.hash.Length > 7
+                    ? package.git.hash.Substring(0, 7)
+                    : package.git.hash;
+
+                line += $"  |  Rev: {shortHash}";
             }
 
-            if (!string.IsNullOrEmpty(status.Error))
-            {
-                DrawTag("Git error", ChangedColor);
-                return;
-            }
+            EditorGUILayout.LabelField(line, RichMiniLabelStyle);
+        }
 
-            if (!status.IsStandaloneRepository)
+        private static Color GetSourceColor(PackageSource source)
+        {
+            switch (source)
             {
-                DrawTag("Not a package Git repo", NeutralColor);
-                return;
-            }
+                case PackageSource.Local:
+                case PackageSource.Embedded:
+                    return LocalSourceColor;
 
-            bool hasChanges = false;
+                case PackageSource.Git:
+                    return GitSourceColor;
 
-            if (status.HasUncommittedChanges)
-            {
-                DrawTag("Not committed changes", ChangedColor);
-                hasChanges = true;
-            }
-
-            if (status.IsDiverged)
-            {
-                DrawTag("Diverged", ChangedColor);
-                hasChanges = true;
-            }
-            else
-            {
-                if (status.HasUnpushedChanges)
-                {
-                    DrawTag("Not pushed changes", ChangedColor);
-                    hasChanges = true;
-                }
-
-                if (status.HasUnpulledChanges)
-                {
-                    DrawTag("Not pulled changes", BehindColor);
-                    hasChanges = true;
-                }
-            }
-
-            if (!status.HasUpstream)
-            {
-                DrawTag("No upstream", NeutralColor);
-            }
-            else if (!string.IsNullOrEmpty(status.RemoteCheckError))
-            {
-                DrawTag("Fetch failed", NeutralColor);
-            }
-            else if (!hasChanges && status.IsClean)
-            {
-                DrawTag("No changes", CleanColor);
+                default:
+                    return StatusInactiveColor;
             }
         }
 
-        private static void DrawTag(string label, Color color)
+        // Always exactly 4 rows x 2 columns = 8 status cells, in the same
+        // order every frame, so the control count never changes between a
+        // Layout and a Repaint pass (a varying tag count there used to
+        // corrupt the layout of the row next to it) and so the grid's
+        // total height always matches the 4-line info column and the
+        // full-height icon beside it.
+        private static void DrawStatusGrid(PackageInfo package, bool isLocal)
         {
-            var style = new GUIStyle(EditorStyles.miniBoldLabel)
+            GetStatusCells(
+                package, isLocal, out var column1, out var column2);
+
+            for (int i = 0; i < 4; i++)
             {
-                alignment = TextAnchor.MiddleCenter,
-                padding = new RectOffset(7, 7, 2, 2)
+                using (new EditorGUILayout.HorizontalScope())
+                {
+                    DrawStatusCell(column1[i]);
+                    DrawStatusCell(column2[i]);
+                }
+            }
+        }
+
+        private static void GetStatusCells(
+            PackageInfo package,
+            bool isLocal,
+            out StatusCell[] column1,
+            out StatusCell[] column2)
+        {
+            if (!isLocal)
+            {
+                column1 = new[]
+                {
+                    new StatusCell("Managed by UPM", false, true),
+                    StatusCell.Empty,
+                    StatusCell.Empty,
+                    StatusCell.Empty
+                };
+
+                column2 = new[]
+                {
+                    StatusCell.Empty,
+                    StatusCell.Empty,
+                    StatusCell.Empty,
+                    StatusCell.Empty
+                };
+
+                return;
+            }
+
+            PullLocalUPMPackages.TryGetStatus(package, out var status);
+
+            column1 = new[]
+            {
+                new StatusCell(
+                    "No changes", status?.IsClean ?? false, true),
+                new StatusCell(
+                    "Not committed changes",
+                    status?.HasUncommittedChanges ?? false, false),
+                new StatusCell(
+                    "Not pushed changes",
+                    status?.HasUnpushedChanges ?? false, false),
+                new StatusCell(
+                    "Not pulled changes",
+                    status?.HasUnpulledChanges ?? false, false)
             };
 
-            style.normal.textColor = Color.white;
+            column2 = new[]
+            {
+                new StatusCell(
+                    "Diverged", status?.IsDiverged ?? false, false),
+                new StatusCell(
+                    "No upstream",
+                    !(status?.HasUpstream ?? true), false),
+                new StatusCell(
+                    "Fetch failed",
+                    !string.IsNullOrEmpty(status?.RemoteCheckError), false),
+                new StatusCell(
+                    "Git error",
+                    !string.IsNullOrEmpty(status?.Error), false)
+            };
+        }
 
-            var content = new GUIContent(label);
-            float width = style.CalcSize(content).x + 4;
+        private static void DrawStatusCell(StatusCell cell)
+        {
+            GUIStyle style;
 
+            if (!cell.Active)
+                style = StatusGreyStyle;
+            else if (cell.IsGood)
+                style = StatusGoodStyle;
+            else
+                style = StatusBadStyle;
+
+            EditorGUILayout.LabelField(
+                cell.Label, style, GUILayout.Width(StatusCellWidth));
+        }
+
+        private readonly struct StatusCell
+        {
+            public static readonly StatusCell Empty =
+                new StatusCell("", false, true);
+
+            public readonly string Label;
+            public readonly bool Active;
+            public readonly bool IsGood;
+
+            public StatusCell(string label, bool active, bool isGood)
+            {
+                Label = label;
+                Active = active;
+                IsGood = isGood;
+            }
+        }
+
+        private static void DrawManifestIconColumn(
+            GameLibModuleScanner.ModuleInfo module)
+        {
             Rect rect = GUILayoutUtility.GetRect(
-                width,
-                20f,
-                GUILayout.ExpandWidth(false));
+                IconColumnWidth,
+                10f,
+                GUILayout.Width(IconColumnWidth),
+                GUILayout.ExpandHeight(true));
 
-            EditorGUI.DrawRect(rect, color);
-            GUI.Label(rect, content, style);
+            bool clicked = GUI.Button(rect, GUIContent.none, GUIStyle.none);
+
+            var icon = module.Manifest != null
+                ? GameLibIconRecolor.GetGreenIcon(module.Manifest.Icon)
+                : null;
+
+            if (icon != null)
+            {
+                var padded = new Rect(
+                    rect.x + 4, rect.y + 4,
+                    rect.width - 8, rect.height - 8);
+
+                GUI.DrawTexture(padded, icon, ScaleMode.ScaleToFit);
+            }
+
+            if (clicked)
+            {
+                GameLibModuleInfoWindow.Open(
+                    module.Manifest,
+                    module.Package.name,
+                    module.Package.version);
+            }
+        }
+
+        private static GUIStyle RichMiniLabelStyle
+        {
+            get
+            {
+                if (_richMiniLabelStyle == null)
+                {
+                    _richMiniLabelStyle = new GUIStyle(EditorStyles.miniLabel)
+                    {
+                        richText = true
+                    };
+                }
+
+                return _richMiniLabelStyle;
+            }
+        }
+
+        private static GUIStyle StatusGreyStyle =>
+            _statusGreyStyle ??= CreateStatusStyle(StatusInactiveColor);
+
+        private static GUIStyle StatusGoodStyle =>
+            _statusGoodStyle ??= CreateStatusStyle(StatusGoodColor);
+
+        private static GUIStyle StatusBadStyle =>
+            _statusBadStyle ??= CreateStatusStyle(StatusBadColor);
+
+        private static GUIStyle CreateStatusStyle(Color color)
+        {
+            var style = new GUIStyle(EditorStyles.miniLabel)
+            {
+                alignment = TextAnchor.MiddleRight
+            };
+
+            style.normal.textColor = color;
+            return style;
         }
 
         private async void PullAll()
@@ -340,6 +520,8 @@ namespace GameLib.Editor
 
         private async void CheckAll()
         {
+            GameLibModuleScanner.Scan();
+
             try
             {
                 await PullLocalUPMPackages.CheckAllAsync();
