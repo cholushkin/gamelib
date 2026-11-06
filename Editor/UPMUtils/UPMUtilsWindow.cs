@@ -2,6 +2,8 @@
 #if UNITY_EDITOR
 
 using System;
+using System.Collections.Generic;
+using System.Text;
 using UnityEditor;
 using UnityEditor.PackageManager;
 using UnityEngine;
@@ -15,8 +17,12 @@ namespace GameLib.Editor
         private const float StatusCellWidth = 128f;
         private const float StatusGridWidth = StatusCellWidth * 2f;
         private const float IconColumnWidth = 72f;
+        private const float DetailIconSize = 72f;
 
         private Vector2 _scrollPosition;
+
+        private readonly HashSet<string> _expandedModules =
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         private static readonly Color LocalSourceColor =
             new Color(0.20f, 0.40f, 0.70f);
@@ -33,10 +39,15 @@ namespace GameLib.Editor
         private static readonly Color StatusBadColor =
             new Color(0.80f, 0.25f, 0.25f);
 
+        private static readonly Color TagColor =
+            new Color(0.95f, 0.65f, 0.20f);
+
         private static GUIStyle _richMiniLabelStyle;
         private static GUIStyle _statusGreyStyle;
         private static GUIStyle _statusGoodStyle;
         private static GUIStyle _statusBadStyle;
+        private static GUIStyle _detailTitleStyle;
+        private static GUIStyle _richTagsStyle;
 
         [MenuItem("GameLib/UPM Utils/UPM Utils")]
         public static void Open()
@@ -179,6 +190,8 @@ namespace GameLib.Editor
                 package.source == PackageSource.Local ||
                 package.source == PackageSource.Embedded;
 
+            bool isExpanded = _expandedModules.Contains(package.name);
+
             using (new EditorGUILayout.VerticalScope(
                 EditorStyles.helpBox))
             {
@@ -195,8 +208,11 @@ namespace GameLib.Editor
                         DrawStatusGrid(package, isLocal);
                     }
 
-                    DrawManifestIconColumn(module);
+                    DrawManifestIconColumn(module, isExpanded);
                 }
+
+                if (isExpanded)
+                    DrawModuleDetails(module);
             }
         }
 
@@ -419,8 +435,9 @@ namespace GameLib.Editor
             }
         }
 
-        private static void DrawManifestIconColumn(
-            GameLibModuleScanner.ModuleInfo module)
+        private void DrawManifestIconColumn(
+            GameLibModuleScanner.ModuleInfo module,
+            bool isExpanded)
         {
             Rect rect = GUILayoutUtility.GetRect(
                 IconColumnWidth,
@@ -443,13 +460,124 @@ namespace GameLib.Editor
                 GUI.DrawTexture(padded, icon, ScaleMode.ScaleToFit);
             }
 
-            if (clicked)
+            if (isExpanded)
             {
-                GameLibModuleInfoWindow.Open(
-                    module.Manifest,
-                    module.Package.name,
-                    module.Package.version);
+                EditorGUI.LabelField(
+                    new Rect(rect.x, rect.yMax - 16, rect.width, 16),
+                    "▲", EditorStyles.centeredGreyMiniLabel);
             }
+
+            if (clicked)
+                ToggleExpanded(module.Package.name);
+        }
+
+        private void ToggleExpanded(string packageName)
+        {
+            if (!_expandedModules.Remove(packageName))
+                _expandedModules.Add(packageName);
+        }
+
+        // Inlined module-details section shown below a row when its icon is
+        // toggled open. Mirrors the layout the standalone module info popup
+        // used to show, but wraps within the package list's own width and
+        // scroll view instead of a fixed-size window.
+        private static void DrawModuleDetails(
+            GameLibModuleScanner.ModuleInfo module)
+        {
+            var manifest = module.Manifest;
+
+            EditorGUILayout.Space(6);
+
+            if (manifest == null)
+            {
+                EditorGUILayout.HelpBox(
+                    "Module manifest is not available.", MessageType.Warning);
+                return;
+            }
+
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                DrawDetailIcon(manifest);
+
+                GUILayout.Space(12);
+
+                using (new EditorGUILayout.VerticalScope(
+                    GUILayout.ExpandHeight(true)))
+                {
+                    GUILayout.FlexibleSpace();
+
+                    EditorGUILayout.LabelField(
+                        string.IsNullOrEmpty(manifest.Name)
+                            ? module.Package.name
+                            : manifest.Name,
+                        DetailTitleStyle);
+
+                    EditorGUILayout.Space(4);
+
+                    EditorGUILayout.LabelField(
+                        $"Module version: {manifest.Version}",
+                        EditorStyles.miniLabel);
+
+                    EditorGUILayout.LabelField(
+                        $"Package: {module.Package.name} " +
+                        $"({module.Package.version})",
+                        EditorStyles.miniLabel);
+
+                    GUILayout.FlexibleSpace();
+                }
+            }
+
+            EditorGUILayout.Space(10);
+
+            EditorGUILayout.LabelField(
+                "Description", EditorStyles.boldLabel);
+
+            EditorGUILayout.LabelField(
+                string.IsNullOrEmpty(manifest.Description)
+                    ? "(no description)"
+                    : manifest.Description,
+                EditorStyles.wordWrappedLabel);
+
+            DrawDetailTags(manifest);
+        }
+
+        private static void DrawDetailIcon(GameLibModuleManifest manifest)
+        {
+            Rect rect = GUILayoutUtility.GetRect(
+                DetailIconSize,
+                DetailIconSize,
+                GUILayout.Width(DetailIconSize),
+                GUILayout.Height(DetailIconSize));
+
+            var texture = GameLibIconRecolor.GetGreenIcon(manifest.Icon);
+
+            if (texture != null)
+                GUI.DrawTexture(rect, texture, ScaleMode.ScaleToFit);
+        }
+
+        private static void DrawDetailTags(GameLibModuleManifest manifest)
+        {
+            if (manifest.Tags == null || manifest.Tags.Length == 0)
+                return;
+
+            EditorGUILayout.Space(10);
+
+            EditorGUILayout.LabelField("Tags", EditorStyles.boldLabel);
+
+            string hex = ColorUtility.ToHtmlStringRGB(TagColor);
+            var builder = new StringBuilder();
+
+            for (int i = 0; i < manifest.Tags.Length; i++)
+            {
+                if (i > 0)
+                    builder.Append("   ");
+
+                builder.Append("<color=#").Append(hex).Append('>');
+                builder.Append('#').Append(manifest.Tags[i]);
+                builder.Append("</color>");
+            }
+
+            EditorGUILayout.LabelField(builder.ToString(), RichTagsStyle);
         }
 
         private static GUIStyle RichMiniLabelStyle
@@ -465,6 +593,39 @@ namespace GameLib.Editor
                 }
 
                 return _richMiniLabelStyle;
+            }
+        }
+
+        private static GUIStyle DetailTitleStyle
+        {
+            get
+            {
+                if (_detailTitleStyle == null)
+                {
+                    _detailTitleStyle = new GUIStyle(EditorStyles.boldLabel)
+                    {
+                        fontSize = 16
+                    };
+                }
+
+                return _detailTitleStyle;
+            }
+        }
+
+        private static GUIStyle RichTagsStyle
+        {
+            get
+            {
+                if (_richTagsStyle == null)
+                {
+                    _richTagsStyle = new GUIStyle(EditorStyles.miniLabel)
+                    {
+                        richText = true,
+                        wordWrap = true
+                    };
+                }
+
+                return _richTagsStyle;
             }
         }
 
